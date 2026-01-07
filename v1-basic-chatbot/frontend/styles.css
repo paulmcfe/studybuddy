@@ -258,6 +258,14 @@ textarea::placeholder {
     cursor: not-allowed;
 }
 
+.version-tag {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    opacity: 0.6;
+}
+
 /* Mobile responsiveness */
 @media (max-width: 640px) {
     .header {
