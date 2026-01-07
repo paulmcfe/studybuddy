@@ -103,7 +103,7 @@ body {
     max-width: 80%;
     padding: 12px 16px;
     border-radius: var(--radius);
-    font-size: 0.9375rem;
+    font-size: 1.25rem;
     line-height: 1.6;
     word-wrap: break-word;
 }
@@ -287,7 +287,7 @@ textarea::placeholder {
     .message-content {
         max-width: 85%;
         padding: 10px 14px;
-        font-size: 0.875rem;
+        font-size: 1rem;
     }
 
     .input-area {
