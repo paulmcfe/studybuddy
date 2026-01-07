@@ -1,7 +1,13 @@
 {
   "version": 2,
   "routes": [
-    { "src": "/(.*)", "dest": "/api/index.py" }
-  ]
+    { "src": "/(.*)", "dest": "/backend/main.py" }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  },
+  "ignoreCommand": "bash scripts/should-deploy.sh"
 }
 

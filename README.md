@@ -1,197 +1,309 @@
-<p align = "center" draggable=”false” ><img src="https://github.com/AI-Maker-Space/LLM-Dev-101/assets/37101144/d1343317-fa2f-41e1-8af1-1dbb18399719" 
-     width="200px"
-     height="auto"/>
-</p>
+# StudyBuddy - AI-Powered Learning Assistant
 
+An intelligent learning system that combines conversational tutoring with spaced repetition flashcard practice. Built progressively across 14 versions in the **AI Engineering Bootcamp** book.
 
-## <h1 align="center" id="heading"> 👋 Welcome to the AI Engineer Challenge</h1>
+## What is StudyBuddy?
 
-## 🤖 Your First Vibe Coding LLM Application
+StudyBuddy is a complete AI learning platform that helps you master any subject through two complementary modes:
 
-> If you are a novice, and need a bit more help to get your dev environment off the ground, check out this [Setup Guide](docs/GIT_SETUP.md). This guide will walk you through the 'git' setup you need to get started.
+- **Tutoring Mode:** Ask questions and get clear explanations adapted to your level
+- **Practice Mode:** AI-generated flashcards with spaced repetition scheduling
 
-> For additional context on LLM development environments and API key setup, you can also check out our [Interactive Dev Environment for LLM Development](https://github.com/AI-Maker-Space/Interactive-Dev-Environment-for-AI-Engineers).
+The system tracks your learning history, identifies weak areas, and adjusts to your preferred learning style—all powered by modern AI engineering patterns including RAG, multi-agent systems, memory, and production deployment strategies.
 
-In this repository, we'll walk you through the steps to create a LLM (Large Language Model) powered application with a vibe-coded frontend!
+## Repository Structure
 
-Are you ready? Let's get started!
-
-<details>
-  <summary>🖥️ Accessing "gpt-4.1-mini" (ChatGPT) like a developer</summary>
-
-1. Head to [this notebook](https://colab.research.google.com/drive/1sT7rzY_Lb1_wS0ELI1JJfff0NUEcSD72?usp=sharing) and follow along with the instructions!
-
-2. Complete the notebook and try out your own system/assistant messages!
-
-That's it! Head to the next step and start building your application!
-
-</details>
-
-
-<details>
-  <summary>🏗️ Forking & Cloning This Repository</summary>
-
-Before you begin, make sure you have:
-
-1. 👤 A GitHub account (you'll need to replace `YOUR_GITHUB_USERNAME` with your actual username)
-2. 🔧 Git installed on your local machine
-3. 💻 A code editor (like Cursor, VS Code, etc.)
-4. ⌨️ Terminal access (Mac/Linux) or Command Prompt/PowerShell (Windows)
-5. 🔑 A GitHub Personal Access Token (for authentication)
-
-Got everything in place? Let's move on!
-
-1. Fork [this](https://github.com/AI-Maker-Space/The-AI-Engineer-Challenge) repo!
-
-     ![image](https://i.imgur.com/bhjySNh.png)
-
-1. Clone your newly created repo.
-
-     ``` bash
-     # First, navigate to where you want the project folder to be created
-     cd PATH_TO_DESIRED_PARENT_DIRECTORY
-
-     # Then clone (this will create a new folder called The-AI-Engineer-Challenge)
-     git clone git@github.com:<YOUR GITHUB USERNAME>/The-AI-Engineer-Challenge.git
-     ```
-
-     > Note: This command uses SSH. If you haven't set up SSH with GitHub, the command will fail. In that case, use HTTPS by replacing `git@github.com:` with `https://github.com/` - you'll then be prompted for your GitHub username and personal access token.
-
-2. Verify your git setup:
-
-     ```bash
-     # Check that your remote is set up correctly
-     git remote -v
-
-     # Check the status of your repository
-     git status
-
-     # See which branch you're on
-     git branch
-     ```
-
-     <!-- > Need more help with git? Check out our [Detailed Git Setup Guide](docs/GIT_SETUP.md) for a comprehensive walkthrough of git configuration and best practices. -->
-
-3. Open the freshly cloned repository inside Cursor!
-
-     ```bash
-     cd The-AI-Engineering-Challenge
-     cursor .
-     ```
-
-4. Check out the existing backend code found in `/api/index.py`
-
-</details>
-
-<details>
-  <summary>⚙️ Backend Setup with uv</summary>
-
-1. Install the [`uv`](https://github.com/astral-sh/uv) package manager (`pip install uv`). `uv` will download and manage Python 3.12 for you the first time you run a project command.
-2. From the project root, install dependencies with `uv sync`. This creates `.venv/` (and fetches Python 3.12 automatically if needed).
-3. Set your OpenAI API key in the shell before running the server, for example `export OPENAI_API_KEY=sk-...`.
-4. Start the backend directly from the project root with `uv run uvicorn api.index:app --reload`. The server will run on `http://localhost:8000` with auto-reload enabled for development.
-5. Additional backend details live in `api/README.md`.
-
-</details>
-
-<details>
-  <summary>🔥Setting Up for Vibe Coding Success </summary>
-
-While it is a bit counter-intuitive to set things up before jumping into vibe-coding - it's important to remember that there exists a gradient betweeen AI-Assisted Development and Vibe-Coding. We're only reaching *slightly* into AI-Assisted Development for this challenge, but it's worth it!
-
-1. Check out the rules in `.cursor/rules/` and add theme-ing information like colour schemes in `frontend-rule.mdc`! You can be as expressive as you'd like in these rules!
-2. We're going to index some docs to make our application more likely to succeed. To do this - we're going to start with `CTRL+SHIFT+P` (or `CMD+SHIFT+P` on Mac) and we're going to type "custom doc" into the search bar. 
-
-     ![image](https://i.imgur.com/ILx3hZu.png)
-3. We're then going to copy and paste `https://nextjs.org/docs` into the prompt.
-
-     ![image](https://i.imgur.com/psBjpQd.png)
-
-4. We're then going to use the default configs to add these docs to our available and indexed documents.
-
-     ![image](https://i.imgur.com/LULLeaF.png)
-
-5. After that - you will do the same with Vercel's documentation. After which you should see:
-
-     ![image](https://i.imgur.com/hjyXhhC.png) 
-
-</details>
-
-<details>
-  <summary>😎 Vibe Coding a Front End for the FastAPI Backend</summary>
-
-1. Use `Command-L` or `CTRL-L` to open the Cursor chat console. 
-
-2. Set the chat settings to the following:
-
-     ![image](https://i.imgur.com/LSgRSgF.png)
-
-3. Ask Cursor to create a frontend for your application. Iterate as much as you like!
-
-4. Run the frontend using the instructions Cursor provided. 
-
-> NOTE: If you run into any errors, copy and paste them back into the Cursor chat window - and ask Cursor to fix them!
-
-> NOTE: You have been provided with a backend in the `/api` folder - please ensure your Front End integrates with it!
-
-</details>
-
-<details>
-  <summary>🚀 Deploying Your First LLM-powered Application with Vercel</summary>
-
-1. Ensure you have signed into [Vercel](https://vercel.com/) with your GitHub account.
-
-2. Ensure you have `npm` (this may have been installed in the previous vibe-coding step!) - if you need help with that, ask Cursor!
-
-3. Run the command:
-
-     ```bash
-     npm install -g vercel
-     ```
-
-4. Run the command:
-
-     ```bash
-     vercel
-     ```
-
-5. Follow the in-terminal instructions. (Below is an example of what you will see!)
-
-     ![image](https://i.imgur.com/D1iKGCq.png)
-
-6. Once the build is completed - head to the provided link and try out your app!
-
-> NOTE: Remember, if you run into any errors - ask Cursor to help you fix them!
-
-</details>
-
-### Vercel Link to Share
-
-You'll want to make sure you share you *domains* hyperlink to ensure people can access your app!
-
-![image](https://i.imgur.com/mpXIgIz.png)
-
-> NOTE: Test this is the public link by trying to open your newly deployed site in an Incognito browser tab!
-
-### 🎉 Congratulations! 
-
-You just deployed your first LLM-powered application! 🚀🚀🚀 Get on linkedin and post your results and experience! Make sure to tag us at @AIMakerspace!
-
-Here's a template to get your post started!
+This repository contains all 14 versions of StudyBuddy, each corresponding to a chapter in the book:
 
 ```
-🚀🎉 Exciting News! 🎉🚀
-
-🏗️ Today, I'm thrilled to announce that I've successfully built and shipped my first-ever LLM using the powerful combination of , and the OpenAI API! 🖥️
-
-Check it out 👇
-[LINK TO APP]
-
-A big shoutout to the @AI Makerspace for all making this possible. Couldn't have done it without the incredible community there. 🤗🙏
-
-Looking forward to building with the community! 🙌✨ Here's to many more creations ahead! 🥂🎉
-
-Who else is diving into the world of AI? Let's connect! 🌐💡
-
-#FirstLLMApp 
+studybuddy/
+├── v1-basic-chatbot/
+├── v2-rag-tutoring/
+├── v3-agentic-tutoring/
+├── v4-sophisticated-rag/
+├── v5-multi-agent/
+├── v6-memory-enhanced/
+├── v7-learning-planner/
+├── v8-evaluation/
+├── v9-optimized-retrieval/
+├── v10-full-stack/
+├── v11-external-integrations/
+├── v12-production-api/
+├── v13-open-source/
+├── v14-production-ready/
+├── shared/              # Shared utilities and data
+├── scripts/             # Deployment and utility scripts
+├── .gitignore
+└── README.md           # This file
 ```
+
+## Versions by Chapter
+
+### Part 1: Foundations
+
+**[v1-basic-chatbot](v1-basic-chatbot/)** - Chapter 1
+- Simple tutoring chatbot deployed to Vercel
+- First OpenAI API integration
+- Basic prompt engineering
+
+**[v2-rag-tutoring](v2-rag-tutoring/)** - Chapter 2  
+- RAG pipeline built from scratch
+- Document upload and indexing
+- Vector similarity search
+- Grounded explanations from study materials
+
+**[v3-agentic-tutoring](v3-agentic-tutoring/)** - Chapter 3
+- LangChain agent with ReAct loop
+- Tool use for searching materials
+- Qdrant vector database integration
+- Agent decides when to retrieve vs. answer directly
+
+**[v4-sophisticated-rag](v4-sophisticated-rag/)** - Chapter 4
+- LangGraph for fine-grained control
+- Query analysis and planning
+- Dynamic retrieval strategies
+- Reflection and confidence scoring
+- LangSmith observability
+
+### Part 2: Advanced Agents
+
+**[v5-multi-agent](v5-multi-agent/)** - Chapter 5
+- Multi-agent architecture with supervisor pattern
+- Tutor Agent, Card Generator, Quality Checker, Scheduler
+- **Both modes unified:** tutoring + flashcard practice
+- Spaced repetition with SM-2 algorithm
+- LangSmith Studio visualization
+
+**[v6-memory-enhanced](v6-memory-enhanced/)** - Chapter 6
+- LangGraph native memory with langmem
+- Tracks learning history across sessions
+- Remembers struggle areas vs. mastery
+- Learning style preferences
+- Memory connects tutoring and practice modes
+
+**[v7-learning-planner](v7-learning-planner/)** - Chapter 7
+- Deep agent capabilities
+- Multi-week study schedule planning
+- Prerequisite chain decomposition
+- Subagent spawning for research
+- Long-horizon task management
+
+### Part 3: Evaluation & Optimization
+
+**[v8-evaluation](v8-evaluation/)** - Chapter 8
+- Synthetic test data generation with RAGAS
+- Evaluation datasets for tutoring quality
+- Flashcard validation
+- LangSmith evaluation pipelines
+- Baseline performance metrics
+
+**[v9-optimized-retrieval](v9-optimized-retrieval/)** - Chapter 9
+- Hybrid search (dense + BM25)
+- Cohere reranking
+- Semantic chunking
+- RAG-Fusion for comprehensive coverage
+- Performance benchmarking with RAGAS
+
+### Part 4: Production Systems
+
+**[v10-full-stack](v10-full-stack/)** - Chapter 10
+- Complete web application
+- Learning dashboard with progress tracking
+- Flashcard review interface (swipe to answer)
+- Material upload with drag-and-drop
+- Study calendar and analytics
+- Mobile-friendly design
+
+**[v11-external-integrations](v11-external-integrations/)** - Chapter 11
+- MCP connectors for external resources
+- Notion integration for study notes
+- Google Drive for documents
+- GitHub for code repositories
+- Calendar for session scheduling
+
+**[v12-production-api](v12-production-api/)** - Chapter 12
+- Deployed to LangSmith Deployment
+- Production API endpoints
+- Authentication and multi-user support
+- Isolated memory per user
+- Health checks and monitoring
+
+**[v13-open-source](v13-open-source/)** - Chapter 13
+- Open-source LLM support (Llama, Mixtral)
+- Together AI deployment
+- Open embedding models
+- MCP server implementation
+- Agent-to-agent communication (A2A)
+- Cost optimization benchmarks
+
+**[v14-production-ready](v14-production-ready/)** - Chapter 14
+- **Final production-ready system**
+- Guardrails (input validation, content filtering)
+- Comprehensive caching (semantic, prompt, embeddings, responses)
+- Rate limiting and throttling
+- Security hardening
+- Cost optimization
+- Complete monitoring and alerting
+
+## Quick Start
+
+### Prerequisites
+
+Before diving in, make sure you have:
+
+- Python 3.12 or later
+- Node.js 18 or later (for frontend in later versions)
+- Git
+- OpenAI API key
+- Accounts: GitHub, Vercel (for deployment)
+
+See **Appendix A** in the book for complete environment setup.
+
+### Running a Specific Version
+
+Each version is self-contained. To run version 6, for example:
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/studybuddy.git
+cd studybuddy
+
+# Navigate to the version you want
+cd v6-memory-enhanced
+
+# Follow instructions in that directory's README
+cat README.md
+```
+
+Each version directory contains:
+- Its own `README.md` with specific setup instructions
+- Complete, working code for that chapter
+- `.env.example` template for environment variables
+- Deployment configuration (where applicable)
+
+### Following Along with the Book
+
+Reading Chapter 6? Jump straight to:
+```bash
+cd v6-memory-enhanced
+```
+
+Want to see how memory was added from v5 to v6? Compare:
+```bash
+# Look at both directories side by side
+ls -la v5-multi-agent/
+ls -la v6-memory-enhanced/
+```
+
+## Deployment
+
+### Development (All Versions)
+Each version can be run locally for development. See the README in each version directory.
+
+### Production (v14 Only)
+The final production-ready version (v14) is designed for deployment to:
+- **LangSmith Deployment** for the agent backend
+- **Vercel** for the frontend
+
+#### Preventing Unnecessary Rebuilds
+
+Since the entire repository is version-controlled, you'll want to prevent Vercel from rebuilding when you add earlier versions. Use this `vercel.json` configuration:
+
+```json
+{
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  },
+  "ignoreCommand": "bash scripts/should-deploy.sh"
+}
+```
+
+And create `scripts/should-deploy.sh`:
+```bash
+#!/bin/bash
+# Only deploy if changes are in v14-production-ready
+git diff HEAD^ HEAD --name-only | grep -q "^v14-production-ready/"
+```
+
+This ensures Vercel only redeploys when v14 changes, not when you're adding earlier versions.
+
+## Repository Organization
+
+### Shared Resources
+The `shared/` directory contains utilities and data used across multiple versions:
+- Common configuration files
+- Shared datasets (Vapor Labs documents, example study materials)
+- Utility functions
+- Reusable components
+
+### Scripts
+The `scripts/` directory contains:
+- Deployment helpers (`should-deploy.sh`)
+- Data preprocessing scripts
+- Setup automation
+- Testing utilities
+
+### Version Independence
+While there's code duplication across versions, this is intentional. Each version is:
+- Complete and working on its own
+- A snapshot of what StudyBuddy looks like at that chapter
+- Independently deployable (though we only deploy v14 in production)
+- Easy to understand without cross-referencing other versions
+
+## Learning Path
+
+**New to AI Engineering?** Start with v1 and work through sequentially.
+
+**Specific interests?**
+- **RAG fundamentals:** v2-v4
+- **Multi-agent systems:** v5
+- **Memory in agents:** v6
+- **Production deployment:** v12-v14
+- **Evaluation:** v8-v9
+
+**Just want the final product?** Jump to v14 and deploy it, then work backward through the book to understand how it was built.
+
+## Contributing
+
+Found an issue or have an improvement? We welcome contributions!
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/improvement`)
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+Please target your PR to the appropriate version directory.
+
+## Project History
+
+StudyBuddy was built as the primary teaching example for the **AI Engineering Bootcamp** book. The progression from v1 (simple chatbot) to v14 (production-ready learning platform) mirrors the learning journey from basic LLM integration to sophisticated agentic systems.
+
+The project demonstrates:
+- RAG (Retrieval Augmented Generation)
+- Agentic AI systems
+- Multi-agent coordination
+- Memory and personalization
+- Production deployment patterns
+- Cost optimization
+- Evaluation and testing
+- Full-stack AI application development
+
+## Need Help?
+
+- **Book Content:** Refer to the chapter corresponding to the version you're working with
+- **Code Issues:** Check the README in the specific version directory
+- **Deployment Problems:** See the deployment section above
+- **General Questions:** Open an issue in this repository
+
+## License
+
+[Your license here - probably MIT or similar for an educational project]
+
+---
+
+**Built with:** LangChain, LangGraph, OpenAI, Qdrant, FastAPI, and lots of learning.
+
+**Remember:** Build, ship, share. 🚀
