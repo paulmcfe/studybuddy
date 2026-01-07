@@ -46,7 +46,8 @@ def get_status():
 
 @app.post("/api/chat")
 def chat(request: ChatRequest):
-    if not os.getenv("OPENAI_API_KEY"):
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
 
     try:
@@ -54,7 +55,10 @@ def chat(request: ChatRequest):
         return {"reply": reply}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        # Include more detail for debugging
+        import traceback
+        error_detail = f"{type(e).__name__}: {str(e)}"
+        raise HTTPException(status_code=500, detail=error_detail)
 
 
 # Serve frontend static files (local development only)
