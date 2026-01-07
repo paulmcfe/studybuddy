@@ -81,11 +81,11 @@ async function handleSend() {
             body: JSON.stringify({ message }),
         });
 
-        if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
-        }
-
         const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || `Server error: ${response.status}`);
+        }
 
         // Replace loading indicator with actual response (render markdown)
         loadingDiv.innerHTML = marked.parse(data.reply);
@@ -140,9 +140,6 @@ function showError(message) {
 function getErrorMessage(error) {
     if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
         return 'Unable to connect to the server. Please make sure the backend is running.';
-    }
-    if (error.message.includes('Server error: 500')) {
-        return 'Server error. Please check if the API key is configured correctly.';
     }
     return `Error: ${error.message}`;
 }
