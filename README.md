@@ -18,7 +18,7 @@ This repository contains all 14 versions of StudyBuddy, each corresponding to a 
 ```
 studybuddy/
 ├── v1-basic-chatbot/
-├── v2-rag-tutoring/
+├── v2-rag-from-scratch/
 ├── v3-agentic-tutoring/
 ├── v4-sophisticated-rag/
 ├── v5-multi-agent/

@@ -2,12 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "src": "v1-basic-chatbot/api/index.py",
+      "src": "v2-rag-from-scratch/api/index.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "/v1-basic-chatbot/api/index.py" }
+    { "src": "/(.*)", "dest": "/v2-rag-from-scratch/api/index.py" }
   ],
   "git": {
     "deploymentEnabled": {
