@@ -21,20 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
     checkIndexingStatus();
 });
 
-// Check indexing status
+// Check server status
 async function checkIndexingStatus() {
     try {
-        const response = await fetch(STATUS_URL);
-        const status = await response.json();
-
-        if (status.indexing_complete) {
-            indexingComplete = true;
-            versionTag.textContent = `StudyBuddy v2 · ${status.chunks_in_db} chunks indexed`;
-        } else {
-            versionTag.textContent = `StudyBuddy v2 · Indexing... (${status.chunks_in_db} chunks)`;
-            // Poll again in 2 seconds
-            setTimeout(checkIndexingStatus, 2000);
-        }
+        await fetch(STATUS_URL);
+        versionTag.textContent = `StudyBuddy v2 · RAG enabled`;
+        indexingComplete = true;
     } catch (error) {
         // Server not ready yet, try again
         setTimeout(checkIndexingStatus, 2000);

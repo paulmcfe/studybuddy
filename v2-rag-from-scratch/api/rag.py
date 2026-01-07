@@ -1,8 +1,75 @@
 import numpy as np
 from typing import List
-from pathlib import Path
 from openai import OpenAI
 import os
+
+
+# Sample study material embedded directly in the code
+STUDY_MATERIAL = """
+Mitosis: Cell Division Explained
+
+Mitosis is the process by which a single cell divides to produce two identical daughter cells. It is essential for growth, repair, and maintenance of living organisms. Mitosis ensures that each new cell receives an exact copy of the parent cell's genetic material.
+
+The Phases of Mitosis
+
+Mitosis consists of four main phases: prophase, metaphase, anaphase, and telophase. Each phase has distinct characteristics and events.
+
+Prophase
+
+During prophase, the chromatin condenses into visible chromosomes. Each chromosome consists of two sister chromatids joined at the centromere. The nuclear envelope begins to break down, and the mitotic spindle starts to form from the centrioles. The spindle fibers extend from the centrioles toward the center of the cell.
+
+Metaphase
+
+In metaphase, the chromosomes align along the cell's equator, forming what is called the metaphase plate. The spindle fibers attach to the centromeres of each chromosome. This alignment ensures that each daughter cell will receive one copy of each chromosome.
+
+Anaphase
+
+Anaphase begins when the sister chromatids separate at the centromere. The spindle fibers shorten, pulling the separated chromatids toward opposite poles of the cell. By the end of anaphase, each pole has a complete set of chromosomes.
+
+Telophase
+
+During telophase, the chromosomes arrive at the poles and begin to decondense back into chromatin. The nuclear envelope reforms around each set of chromosomes, creating two separate nuclei. The spindle fibers disassemble.
+
+Cytokinesis
+
+Following mitosis, cytokinesis divides the cytoplasm, producing two separate daughter cells. In animal cells, a cleavage furrow forms and pinches the cell in two. In plant cells, a cell plate forms between the two nuclei and develops into a new cell wall.
+
+Photosynthesis: Converting Light to Energy
+
+Photosynthesis is the process by which plants, algae, and some bacteria convert light energy into chemical energy stored in glucose. This process is fundamental to life on Earth, as it produces oxygen and forms the base of most food chains.
+
+The Overall Equation
+
+The overall equation for photosynthesis is: 6CO2 + 6H2O + light energy → C6H12O6 + 6O2. This means six molecules of carbon dioxide and six molecules of water, using light energy, produce one molecule of glucose and six molecules of oxygen.
+
+Light-Dependent Reactions
+
+The light-dependent reactions occur in the thylakoid membranes of chloroplasts. Chlorophyll and other pigments absorb light energy, which is used to split water molecules (photolysis), releasing oxygen as a byproduct. This process generates ATP and NADPH, which are energy carriers used in the next stage.
+
+The Calvin Cycle
+
+The Calvin Cycle, also called the light-independent reactions, occurs in the stroma of chloroplasts. It uses the ATP and NADPH from the light-dependent reactions to fix carbon dioxide into glucose. The cycle involves three main stages: carbon fixation, reduction, and regeneration of the starting molecule RuBP.
+
+The Water Cycle
+
+The water cycle, also known as the hydrological cycle, describes the continuous movement of water on, above, and below Earth's surface. It is driven primarily by solar energy and gravity.
+
+Evaporation and Transpiration
+
+Water evaporates from oceans, lakes, and rivers when heated by the sun. Plants also release water vapor through transpiration from their leaves. This water vapor rises into the atmosphere.
+
+Condensation
+
+As water vapor rises and cools, it condenses around tiny particles in the atmosphere to form clouds. This process releases heat energy into the atmosphere.
+
+Precipitation
+
+When water droplets in clouds become too heavy, they fall as precipitation—rain, snow, sleet, or hail. Precipitation replenishes surface water and groundwater supplies.
+
+Collection and Runoff
+
+Precipitation collects in oceans, lakes, rivers, and underground aquifers. Some water flows over land as runoff, eventually returning to larger bodies of water. The cycle then repeats continuously.
+"""
 
 
 class SimpleVectorDB:
@@ -71,40 +138,18 @@ def index_document(text: str, doc_name: str):
         vector_db.add(embedding, chunk, {'doc_name': doc_name, 'chunk_id': i})
 
 
-def index_documents_directory(directory_path: str = './documents'):
-    """Index all .txt files in the specified directory."""
-    doc_path = Path(directory_path)
+def index_study_material():
+    """Index the built-in study material."""
+    if vector_db.vectors:
+        return len(vector_db.vectors)  # Already indexed
 
-    if not doc_path.exists():
-        print(f"Directory {directory_path} not found. Creating it...")
-        doc_path.mkdir(parents=True, exist_ok=True)
-        print(f"Please add your study materials as .txt files to {directory_path}")
-        return 0
-
-    txt_files = list(doc_path.glob('*.txt'))
-
-    if not txt_files:
-        print(f"No .txt files found in {directory_path}")
-        return 0
-
-    print(f"Found {len(txt_files)} documents to index...")
-
-    for txt_file in txt_files:
-        print(f"Indexing {txt_file.name}...")
-        with open(txt_file, 'r', encoding='utf-8') as f:
-            text = f.read()
-
-        # Use the filename (without extension) as the document name
-        doc_name = txt_file.stem
-        index_document(text, doc_name)
-
-    print(f"Successfully indexed {len(txt_files)} documents!")
-    return len(txt_files)
+    index_document(STUDY_MATERIAL, "study-guide")
+    return len(vector_db.vectors)
 
 
 def retrieve_context(query: str, k: int = 3) -> str:
-    if not vector_db.vectors:
-        return ""
+    # Ensure study material is indexed
+    index_study_material()
 
     query_embedding = embed_text(query)
     results = vector_db.search(query_embedding, k=k)
@@ -119,8 +164,7 @@ def retrieve_context(query: str, k: int = 3) -> str:
 def answer_question(question: str) -> str:
     context = retrieve_context(question)
 
-    if context:
-        prompt = f'''You are StudyBuddy, a helpful tutoring assistant.
+    prompt = f'''You are StudyBuddy, a helpful tutoring assistant.
 
 Given the following context from study materials, answer the student's
 question. Be clear and thorough, and cite which document you're
@@ -128,14 +172,6 @@ referencing when relevant.
 
 Context:
 {context}
-
-Question: {question}'''
-    else:
-        # Fall back to general knowledge if no documents indexed
-        prompt = f'''You are StudyBuddy, a helpful tutoring assistant.
-
-Answer the student's question clearly and thoroughly. Since no study
-materials have been uploaded yet, use your general knowledge.
 
 Question: {question}'''
 
