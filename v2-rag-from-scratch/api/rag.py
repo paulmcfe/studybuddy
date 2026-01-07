@@ -117,13 +117,21 @@ def chunk_text(text: str, chunk_size: int = 500,
     return chunks
 
 
-# Initialize OpenAI client and vector database
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Initialize vector database (client initialized lazily)
 vector_db = SimpleVectorDB()
+_client = None
+
+
+def get_client():
+    """Lazy initialization of OpenAI client."""
+    global _client
+    if _client is None:
+        _client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    return _client
 
 
 def embed_text(text: str) -> List[float]:
-    response = client.embeddings.create(
+    response = get_client().embeddings.create(
         model='text-embedding-3-small',
         input=text
     )
@@ -175,7 +183,7 @@ Context:
 
 Question: {question}'''
 
-    response = client.chat.completions.create(
+    response = get_client().chat.completions.create(
         model='gpt-5-nano',
         messages=[{
             'role': 'user',
