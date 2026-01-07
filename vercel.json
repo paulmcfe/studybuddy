@@ -4,10 +4,15 @@
     {
       "src": "v2-rag-from-scratch/api/index.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "v2-rag-from-scratch/frontend/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "/v2-rag-from-scratch/api/index.py" }
+    { "src": "/api/(.*)", "dest": "/v2-rag-from-scratch/api/index.py" },
+    { "src": "/(.*)", "dest": "/v2-rag-from-scratch/frontend/$1" }
   ],
   "git": {
     "deploymentEnabled": {
