@@ -10,7 +10,7 @@ That was fine for learning RAG fundamentals, but it's not a real tutoring system
 
 ## What We're Adding
 
-StudyBuddy v3 adds document upload and indexing. Students can work with any text-based study materials—we'll chunk them, embed them, and store them in Qdrant. The agent can then search these materials when answering questions. This implementation uses the 12 Sherlock Holmes stories from "The Adventures of Sherlock Holmes" as the document set, demonstrating how the system works with literary texts. The same patterns work for any domain—textbooks, course notes, research papers, historical documents, whatever students need to study.
+StudyBuddy v3 adds document upload and indexing. Students can work with any text-based study materials (`.txt` and `.md` files)—we'll chunk them, embed them, and store them in Qdrant. The agent can then search these materials when answering questions. This implementation uses the 12 Sherlock Holmes stories from "The Adventures of Sherlock Holmes" as the document set, demonstrating how the system works with literary texts. The same patterns work for any domain—textbooks, course notes, research papers, historical documents, whatever students need to study.
 
 We're also making StudyBuddy a real agent using LangChain 1.0's create_agent. The agent will have tools for searching materials and retrieving additional context. It decides when to use these tools based on the question. If a student asks a simple question the agent already knows, it can answer directly. If they ask about specific study materials, the agent will search before answering.
 
@@ -164,7 +164,10 @@ def index_all_documents():
         return indexing_status["chunks"]
 
     documents_dir = Path("documents")
-    story_files = sorted(documents_dir.glob("*.txt"))
+    story_files = sorted(
+        list(documents_dir.glob("*.txt")) +
+        list(documents_dir.glob("*.md"))
+    )
 
     print("Indexing stories...")
     total_chunks = 0

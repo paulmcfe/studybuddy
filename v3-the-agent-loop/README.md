@@ -53,7 +53,7 @@ uv sync
 
 ### 3. Add study materials
 
-Place `.txt` files in the `documents/` directory. The default setup includes 12 Sherlock Holmes stories from "The Adventures of Sherlock Holmes."
+Place `.txt` or `.md` files in the `documents/` directory. The default setup includes 12 Sherlock Holmes stories from "The Adventures of Sherlock Holmes."
 
 ### 4. Run the app
 
@@ -92,7 +92,7 @@ v3-the-agent-loop/
 ├── api/
 │   ├── index.py         # FastAPI app with LangChain agent
 │   └── requirements.txt # Vercel dependencies
-├── documents/           # Your study materials (.txt files)
+├── documents/           # Your study materials (.txt, .md files)
 │   ├── 01-a-scandal-in-bohemia.txt
 │   ├── 02-the-red-headed-league.txt
 │   └── ...
@@ -175,7 +175,7 @@ vercel --prod
 
 ### Add your own study materials
 
-Drop `.txt` files into the `documents/` directory. They'll be automatically indexed on startup. File names become document names (dashes and underscores converted to spaces, title-cased).
+Drop `.txt` or `.md` files into the `documents/` directory. They'll be automatically indexed on startup. File names become document names (dashes and underscores converted to spaces, title-cased).
 
 ### Adjust chunking parameters
 
@@ -227,7 +227,7 @@ In Chapter 4, we'll rebuild using LangGraph for complete control over the agent'
 - Verify LangChain 1.0+ is installed: `pip list | grep langchain`
 
 **Documents not indexing:**
-- Check the `documents/` directory exists and contains `.txt` files
+- Check the `documents/` directory exists and contains `.txt` or `.md` files
 - Look at terminal output for indexing progress
 - Check `/api/status` endpoint for indexing state
 

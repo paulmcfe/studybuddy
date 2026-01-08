@@ -138,9 +138,12 @@ def index_all_documents():
         indexing_status["done"] = True
         return 0
 
-    story_files = sorted(documents_dir.glob("*.txt"))
+    story_files = sorted(
+        list(documents_dir.glob("*.txt")) +
+        list(documents_dir.glob("*.md"))
+    )
     if not story_files:
-        print("No .txt files found in documents directory")
+        print("No .txt or .md files found in documents directory")
         indexing_status["done"] = True
         return 0
 
