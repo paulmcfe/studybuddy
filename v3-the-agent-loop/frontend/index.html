@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyBuddy - Your AI-powered tutoring assistant</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>StudyBuddy</h1>
+        </header>
+
+        <!-- Messages Container -->
+        <main class="messages-container" id="messagesContainer">
+            <div class="messages" id="messages">
+                <!-- Welcome message -->
+                <div class="message assistant">
+                    <div class="message-content">Hi! I'm StudyBuddy v3, your AI tutoring agent! I use LangChain and Qdrant to intelligently search through Sherlock Holmes stories. Try asking me something like "Who is Irene Adler?" or "What happened in The Red-Headed League?"</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Input Area -->
+        <footer class="input-area">
+            <div class="input-container">
+                <textarea id="messageInput" placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
+                    rows="1"></textarea>
+                <button id="sendButton" class="send-button" aria-label="Send message">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+            <div class="version-tag">StudyBuddy v3</div>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
