@@ -526,4 +526,15 @@ In the next chapter, we'll expand StudyBuddy into a true multi-agent application
 
 Great work making it through this chapter. You now understand how to build agents with explicit state machine control, how to implement intelligent retrieval strategies, and how to observe and debug agent behavior. These skills will serve you well in everything that follows.
 
+## A Note on the UI
+
+The code examples above focus on the core agentic RAG architecture. The actual StudyBuddy v4 implementation extends this with a flashcard-first user interface—students see flashcards as their primary study mode, with chat available as a secondary feature for deeper exploration.
+
+This required a few additions to the API layer:
+- `/api/chapters` endpoint that parses a `topic-list.md` file for chapter/topic navigation
+- `/api/flashcard` endpoint that generates scoped flashcards using the same retrieval patterns
+- `card_context` parameter in the chat endpoint for flashcard-aware conversations
+
+These are presentation-layer enhancements. The underlying LangGraph agent—query analysis, adaptive retrieval, evaluation, and generation—remains exactly as described in this chapter.
+
 Let's keep building.

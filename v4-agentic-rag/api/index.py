@@ -7,7 +7,9 @@ from pathlib import Path
 import threading
 import os
 import json
-from typing import TypedDict, Annotated, Literal
+import re
+import random
+from typing import TypedDict, Annotated, Literal, Optional
 from dotenv import load_dotenv
 
 # LangChain imports
@@ -105,6 +107,92 @@ def index_reference_guides():
     return total_chunks
 
 
+# ============== Topic List Parsing ==============
+
+_cached_chapters = None
+
+
+def parse_topic_list() -> list[dict]:
+    """Parse topic-list.md into structured chapter data. Cached after first call."""
+    global _cached_chapters
+    if _cached_chapters is not None:
+        return _cached_chapters
+
+    topic_file = Path(__file__).parent.parent / "documents" / "topic-list.md"
+    if not topic_file.exists():
+        print(f"topic-list.md not found at {topic_file}")
+        return []
+
+    content = topic_file.read_text()
+    chapters = []
+    current_chapter = None
+    current_section = None
+
+    for line in content.split("\n"):
+        line = line.rstrip()
+
+        # Match chapter heading: # Chapter X: Title
+        chapter_match = re.match(r"^# Chapter (\d+):\s*(.+)$", line)
+        if chapter_match:
+            if current_chapter:
+                chapters.append(current_chapter)
+            current_chapter = {
+                "id": int(chapter_match.group(1)),
+                "title": chapter_match.group(2).strip(),
+                "sections": []
+            }
+            current_section = None
+            continue
+
+        # Match section heading: ## Section Name
+        section_match = re.match(r"^## (.+)$", line)
+        if section_match and current_chapter:
+            current_section = {
+                "name": section_match.group(1).strip(),
+                "subtopics": []
+            }
+            current_chapter["sections"].append(current_section)
+            continue
+
+        # Match subtopic: - Subtopic text
+        subtopic_match = re.match(r"^- (.+)$", line)
+        if subtopic_match and current_section:
+            current_section["subtopics"].append(subtopic_match.group(1).strip())
+
+    # Add the last chapter
+    if current_chapter:
+        chapters.append(current_chapter)
+
+    _cached_chapters = chapters
+    print(f"Parsed {len(chapters)} chapters from topic-list.md")
+    return chapters
+
+
+def get_topics_for_scope(chapter_id: int, scope: str) -> list[dict]:
+    """Get sections/topics for the given scope.
+
+    Returns list of dicts with 'chapter_id', 'chapter_title', 'section_name', 'subtopics'.
+    """
+    chapters = parse_topic_list()
+    topics = []
+
+    if scope == "cumulative":
+        target_chapters = [c for c in chapters if c["id"] <= chapter_id]
+    else:
+        target_chapters = [c for c in chapters if c["id"] == chapter_id]
+
+    for chapter in target_chapters:
+        for section in chapter["sections"]:
+            topics.append({
+                "chapter_id": chapter["id"],
+                "chapter_title": chapter["title"],
+                "section_name": section["name"],
+                "subtopics": section["subtopics"]
+            })
+
+    return topics
+
+
 # ============== LangGraph State ==============
 
 class StudyBuddyState(TypedDict):
@@ -117,6 +205,9 @@ class StudyBuddyState(TypedDict):
     complexity: str
     needs_retrieval: bool
     search_queries: list[str]
+
+    # Context (for flashcard-based chat)
+    card_context: dict | None  # {question, answer, topic} of current flashcard
 
     # Retrieval
     retrieved_docs: list
@@ -269,6 +360,7 @@ def generate_node(state: StudyBuddyState) -> dict:
     docs = state.get("retrieved_docs", [])
     confidence = state.get("confidence", 0.5)
     query_type = state.get("query_type", "conceptual")
+    card_context = state.get("card_context")
 
     # Format context with sources
     context_parts = []
@@ -277,8 +369,21 @@ def generate_node(state: StudyBuddyState) -> dict:
         context_parts.append(f"[{source}]:\n{doc.page_content}")
     context = "\n\n---\n\n".join(context_parts)
 
-    generate_prompt = f"""You are StudyBuddy, an AI engineering tutor helping students learn.
+    # Build card context section if present
+    card_section = ""
+    if card_context:
+        card_section = f"""
+The student is currently studying a flashcard:
+- Topic: {card_context.get('topic', 'Unknown')}
+- Question: {card_context.get('question', '')}
+- Answer: {card_context.get('answer', '')}
 
+They're asking for clarification about this card. Focus your explanation on helping them understand this specific concept better.
+
+"""
+
+    generate_prompt = f"""You are StudyBuddy, an AI engineering tutor helping students learn.
+{card_section}
 Student question: {query}
 
 Reference material:
@@ -299,7 +404,8 @@ Front: [question testing the key concept]
 Back: [concise answer]
 
 Only suggest a flashcard for conceptual or factual questions with clear takeaways.
-Skip for procedural how-to questions, comparisons, or conversational messages."""
+Skip for procedural how-to questions, comparisons, or conversational messages.
+Skip if the student is asking about a flashcard they're already studying."""
 
     response = llm.invoke(generate_prompt)
     content = response.content
@@ -431,6 +537,9 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     message: str
+    chapter_id: Optional[int] = None
+    scope: Optional[str] = None
+    card_context: Optional[dict] = None
 
 
 class ChatResponse(BaseModel):
@@ -438,6 +547,19 @@ class ChatResponse(BaseModel):
     confidence: float
     flashcard: dict | None = None
     analysis: dict | None = None
+
+
+class FlashcardRequest(BaseModel):
+    chapter_id: int
+    scope: str = "single"  # "single" or "cumulative"
+    current_topic: Optional[str] = None
+
+
+class FlashcardResponse(BaseModel):
+    question: str
+    answer: str
+    topic: str
+    source: str  # "rag" or "llm"
 
 
 @app.get("/api/status")
@@ -451,6 +573,109 @@ def get_status():
     }
 
 
+@app.get("/api/chapters")
+def get_chapters():
+    """Get all chapters parsed from topic-list.md."""
+    chapters = parse_topic_list()
+    return {"chapters": chapters}
+
+
+@app.post("/api/flashcard", response_model=FlashcardResponse)
+def generate_flashcard(request: FlashcardRequest):
+    """Generate a single flashcard scoped to selected chapters."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
+
+    if not indexing_status["done"]:
+        raise HTTPException(status_code=503, detail="Still indexing documents. Please wait.")
+
+    # Get topics for the requested scope
+    topics = get_topics_for_scope(request.chapter_id, request.scope)
+    if not topics:
+        raise HTTPException(status_code=400, detail=f"No topics found for chapter {request.chapter_id}")
+
+    # Select a topic
+    if request.current_topic:
+        # "Study More" mode - find the matching topic
+        matching = [t for t in topics if t["section_name"] == request.current_topic]
+        if matching:
+            selected_topic = matching[0]
+        else:
+            selected_topic = random.choice(topics)
+    else:
+        # Pick a random topic
+        selected_topic = random.choice(topics)
+
+    topic_name = selected_topic["section_name"]
+    subtopics = selected_topic["subtopics"]
+
+    # Build search queries from topic and subtopics
+    search_queries = [topic_name]
+    if subtopics:
+        search_queries.extend(subtopics[:2])
+
+    # Retrieve relevant documents
+    all_docs = []
+    seen = set()
+    for query in search_queries:
+        docs = vector_store.similarity_search(query, k=3)
+        for doc in docs:
+            content_hash = hash(doc.page_content[:200])
+            if content_hash not in seen:
+                seen.add(content_hash)
+                all_docs.append(doc)
+
+    # Determine source based on retrieval quality
+    source = "rag" if len(all_docs) >= 2 else "llm"
+
+    # Format context
+    if all_docs:
+        context = "\n\n---\n\n".join([doc.page_content for doc in all_docs[:5]])
+    else:
+        context = ""
+
+    # Generate flashcard
+    flashcard_prompt = f"""You are creating a study flashcard for the topic: {topic_name}
+
+Subtopics to consider: {', '.join(subtopics) if subtopics else 'General concepts'}
+
+Reference material:
+{context if context else 'No specific reference material available - use your knowledge of AI engineering.'}
+
+Create ONE high-quality flashcard that:
+- Tests understanding of a key concept (not just recall)
+- Has a clear, unambiguous question
+- Has a concise but complete answer
+- Avoids yes/no questions
+
+Respond with JSON only:
+{{"question": "...", "answer": "..."}}"""
+
+    response = llm.invoke(flashcard_prompt)
+
+    try:
+        content = response.content.strip()
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+        card = json.loads(content)
+    except json.JSONDecodeError:
+        # Fallback card
+        card = {
+            "question": f"What is a key concept in {topic_name}?",
+            "answer": "Please try again - there was an error generating this card."
+        }
+
+    return FlashcardResponse(
+        question=card["question"],
+        answer=card["answer"],
+        topic=topic_name,
+        source=source
+    )
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     """Handle chat requests through the LangGraph agent."""
@@ -462,10 +687,14 @@ def chat(request: ChatRequest):
         raise HTTPException(status_code=503, detail="Agent still initializing. Please wait for indexing to complete.")
 
     try:
-        result = studybuddy.invoke({
+        # Build the initial state with optional card context
+        initial_state = {
             "query": request.message,
-            "messages": []
-        })
+            "messages": [],
+            "card_context": request.card_context  # Pass through flashcard context if present
+        }
+
+        result = studybuddy.invoke(initial_state)
 
         return ChatResponse(
             reply=result.get("response", "I couldn't generate a response."),
@@ -484,7 +713,7 @@ def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
 
 
-# Serve frontend static files (local development only)
+# Serve static files (local development only)
 if not IS_VERCEL:
     frontend_path = Path(__file__).parent.parent / "frontend"
     if frontend_path.exists():

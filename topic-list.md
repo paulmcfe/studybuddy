@@ -2,6 +2,40 @@
 
 ---
 
+# Chapter 1: Understanding AI Engineering
+
+## What is AI Engineering?
+## The AI Engineering Stack
+## LLMs and Their Capabilities
+- Language Models are Few-Shot Learners
+- Emergent Capabilities
+- Limitations and Challenges
+## From Prototyping to Production
+- The Prototyping Phase
+- The Productionizing Phase
+- Key Skills for Each Phase
+## The Role of Agents in Modern AI Systems
+## Key Skills and Tools
+- Python and Backend Development
+- LLM Orchestration Frameworks
+- Vector Databases and Search
+- Evaluation and Monitoring
+## Your First Vibe Check: Getting Started
+- What is a Vibe Check?
+- Evaluating LLM Applications Qualitatively
+- The AI Engineer Challenge
+- Context Engineering Fundamentals
+## LLM Prototyping Best Practices
+- Prompt Engineering Basics
+- Iterative Development
+- Quick Feedback Loops
+## Introduction to Evaluation
+- Why Evals Matter from Day One
+- Starting with Vibe Checks
+- Building Toward Systematic Evaluation
+
+---
+
 # Chapter 2: Dense Vector Retrieval
 
 ## Introduction to Context Engineering
