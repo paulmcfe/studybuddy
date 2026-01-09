@@ -504,24 +504,34 @@ def create_studybuddy_graph():
 
 # Create the agent (will be initialized after indexing)
 studybuddy = None
+_initialized = False
+
+
+def ensure_initialized():
+    """Ensure documents are indexed and agent is ready. Thread-safe."""
+    global studybuddy, _initialized
+    if _initialized:
+        return
+
+    print("Initializing StudyBuddy...")
+    index_reference_guides()
+    studybuddy = create_studybuddy_graph()
+    _initialized = True
+    print("Agent ready!")
 
 
 # ============== FastAPI Application ==============
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start background indexing and create agent on startup."""
-    global studybuddy
-
-    def init():
-        global studybuddy
-        index_reference_guides()
-        studybuddy = create_studybuddy_graph()
-        print("Agent ready!")
-
-    thread = threading.Thread(target=init, daemon=True)
-    thread.start()
-    print("Server started. Document indexing running in background...")
+    """Initialize on startup for local development."""
+    if not IS_VERCEL:
+        # Local: use background thread for faster startup
+        def init():
+            ensure_initialized()
+        thread = threading.Thread(target=init, daemon=True)
+        thread.start()
+        print("Server started. Document indexing running in background...")
     yield
 
 
@@ -587,7 +597,10 @@ def generate_flashcard(request: FlashcardRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
 
-    if not indexing_status["done"]:
+    # On Vercel, initialize synchronously on first request
+    if IS_VERCEL:
+        ensure_initialized()
+    elif not indexing_status["done"]:
         raise HTTPException(status_code=503, detail="Still indexing documents. Please wait.")
 
     # Get topics for the requested scope
@@ -683,7 +696,10 @@ def chat(request: ChatRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
 
-    if studybuddy is None:
+    # On Vercel, initialize synchronously on first request
+    if IS_VERCEL:
+        ensure_initialized()
+    elif studybuddy is None:
         raise HTTPException(status_code=503, detail="Agent still initializing. Please wait for indexing to complete.")
 
     try:
