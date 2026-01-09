@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyBuddy v4 - Agentic RAG Tutor</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>StudyBuddy</h1>
+        </header>
+
+        <main class="messages-container" id="messagesContainer">
+            <div class="messages" id="messages">
+                <div class="message assistant">
+                    <div class="message-content">
+                        Hi! I'm StudyBuddy v4, your AI Engineering tutor powered by LangGraph!
+                        I use agentic RAG to intelligently search through reference guides on
+                        RAG, agents, embeddings, LangChain, LangGraph, and more. Ask me anything
+                        about AI engineering concepts, and I'll show you my confidence level
+                        and even suggest flashcards for key concepts!
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="input-area">
+            <div class="input-container">
+                <textarea
+                    id="messageInput"
+                    placeholder="Ask about RAG, agents, embeddings, LangGraph..."
+                    rows="1"
+                ></textarea>
+                <button id="sendButton" class="send-button" aria-label="Send message">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+            <div class="version-tag">StudyBuddy v4</div>
+        </footer>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

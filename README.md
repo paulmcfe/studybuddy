@@ -20,7 +20,7 @@ studybuddy/
 ├── v1-basic-chatbot/
 ├── v2-rag-from-scratch/
 ├── v3-the-agentic-loop/
-├── v4-sophisticated-rag/
+├── v4-agentic-rag/
 ├── v5-multi-agent/
 ├── v6-memory-enhanced/
 ├── v7-learning-planner/
