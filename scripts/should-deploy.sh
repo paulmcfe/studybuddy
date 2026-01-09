@@ -1,4 +1,4 @@
 #!/bin/bash
-# Only deploy if changes are in v4-agentic-rag
+# Deploy if changes are in v4-agentic-rag or vercel config
 # Exit 1 (true) = proceed with build, Exit 0 (false) = skip build
-git diff HEAD^ HEAD --name-only | grep -q "^v4-agentic-rag/" && exit 1 || exit 0
+git diff HEAD^ HEAD --name-only | grep -qE "^v4-agentic-rag/|^vercel\.json" && exit 1 || exit 0
