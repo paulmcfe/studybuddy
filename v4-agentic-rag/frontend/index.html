@@ -802,14 +802,14 @@
                     </select>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group hidden" id="sidebarScopeGroup">
                     <label class="form-label" id="sidebarScopeLabel">Study Scope</label>
                     <div class="scope-toggle" role="group" aria-labelledby="sidebarScopeLabel">
                         <button type="button" class="scope-btn active" data-scope="single"
                             onclick="setScope('single', this)" aria-pressed="true">This chapter only</button>
                         <button type="button" class="scope-btn" data-scope="cumulative"
                             onclick="setScope('cumulative', this)" aria-pressed="false">
-                            <span id="sidebarCumulativeLabel">Chapters 1-1</span>
+                            <span id="sidebarCumulativeLabel">Chapters 1-2</span>
                         </button>
                     </div>
                 </div>
@@ -853,14 +853,14 @@
                     </select>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group hidden" id="mobileScopeGroup">
                     <label class="form-label" id="mobileScopeLabel">Study Scope</label>
                     <div class="scope-toggle" role="group" aria-labelledby="mobileScopeLabel">
                         <button type="button" class="scope-btn active" data-scope="single"
                             onclick="setScope('single', this)" aria-pressed="true">This chapter only</button>
                         <button type="button" class="scope-btn" data-scope="cumulative"
                             onclick="setScope('cumulative', this)" aria-pressed="false">
-                            <span id="cumulativeLabel">Chapters 1-1</span>
+                            <span id="cumulativeLabel">Chapters 1-2</span>
                         </button>
                     </div>
                 </div>
@@ -1099,9 +1099,17 @@
                 `<option value="${ch.id}">Chapter ${ch.id}: ${ch.title}</option>`
             ).join('');
 
-            const defaultOption = '<option value="">Select a chapter...</option>';
-            $('chapterSelect').innerHTML = defaultOption + options;
-            $('sidebarChapterSelect').innerHTML = defaultOption + options;
+            $('chapterSelect').innerHTML = options;
+            $('sidebarChapterSelect').innerHTML = options;
+
+            // Select Chapter 1 by default
+            if (state.chapters.length > 0) {
+                const firstChapter = state.chapters[0];
+                $('chapterSelect').value = firstChapter.id;
+                $('sidebarChapterSelect').value = firstChapter.id;
+                state.selectedChapter = firstChapter;
+                updateCumulativeLabels();
+            }
         }
 
         function updateCardUI() {
@@ -1165,9 +1173,28 @@
 
         function updateCumulativeLabels() {
             if (!state.selectedChapter) return;
-            const label = `Chapters 1-${state.selectedChapter.id}`;
-            $('cumulativeLabel').textContent = label;
-            $('sidebarCumulativeLabel').textContent = label;
+
+            const chapterId = state.selectedChapter.id;
+            const showScope = chapterId > 1;
+
+            // Show/hide scope toggle based on chapter selection
+            $('mobileScopeGroup').classList.toggle('hidden', !showScope);
+            $('sidebarScopeGroup').classList.toggle('hidden', !showScope);
+
+            if (showScope) {
+                // Update cumulative label
+                const label = `Chapters 1-${chapterId}`;
+                $('cumulativeLabel').textContent = label;
+                $('sidebarCumulativeLabel').textContent = label;
+            } else {
+                // Reset to single chapter scope when hiding
+                state.scope = 'single';
+                document.querySelectorAll('.scope-btn').forEach(btn => {
+                    const isActive = btn.dataset.scope === 'single';
+                    btn.classList.toggle('active', isActive);
+                    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                });
+            }
         }
 
         function addChatMessage(role, content) {
