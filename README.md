@@ -46,19 +46,19 @@ studybuddy/
 - First OpenAI API integration
 - Basic prompt engineering
 
-**[v2-rag-tutoring](v2-rag-tutoring/)** - Chapter 2  
+**[v2-rag-from-scratch](v2-rag-from-scratch/)** - Chapter 2  
 - RAG pipeline built from scratch
 - Document upload and indexing
 - Vector similarity search
 - Grounded explanations from study materials
 
-**[v3-agentic-tutoring](v3-agentic-tutoring/)** - Chapter 3
+**[v3-agentic-rag](v3-agentic-rag/)** - Chapter 3
 - LangChain agent with ReAct loop
 - Tool use for searching materials
 - Qdrant vector database integration
 - Agent decides when to retrieve vs. answer directly
 
-**[v4-sophisticated-rag](v4-sophisticated-rag/)** - Chapter 4
+**[v4-agentic-rag](v4-agentic-rag/)** - Chapter 4
 - LangGraph for fine-grained control
 - Query analysis and planning
 - Dynamic retrieval strategies
