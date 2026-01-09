@@ -1,6 +1,6 @@
 # StudyBuddy v5 - Multi-Agent Architecture
 
-An intelligent AI Engineering tutor that uses a multi-agent architecture with the supervisor pattern to generate flashcards, answer questions, and manage spaced repetition review sessions.
+An intelligent AI Engineering tutor that uses a multi-agent architecture with the supervisor pattern to generate quality-checked flashcards and answer questions.
 
 ## What's New in v5
 
@@ -9,14 +9,12 @@ StudyBuddy v5 transforms from a single agentic RAG system (v4) into a team of sp
 - **Tutor Agent**: Explains concepts conversationally using gpt-5-nano
 - **Card Generator Agent**: Creates high-quality flashcards using gpt-4o-mini
 - **Quality Checker Agent**: Validates card clarity and usefulness
-- **Scheduler Agent**: Manages spaced repetition using the SM-2 algorithm
 - **Learning Coordinator (Supervisor)**: Orchestrates all agents based on student needs
 
 ## Features
 
 - **Multi-Agent Coordination**: Supervisor routes requests to specialized agents
 - **Quality-Checked Flashcards**: All cards pass through quality validation
-- **Spaced Repetition**: SM-2 algorithm for optimal review scheduling
 - **Interactive Chat**: Ask questions about concepts or flashcards
 - **Chapter-Based Study**: Topics organized by chapter with single or cumulative modes
 - **LangSmith Tracing**: Full observability of agent interactions
@@ -28,19 +26,17 @@ StudyBuddy v5 transforms from a single agentic RAG system (v4) into a team of sp
                     │  Supervisor │
                     └──────┬──────┘
                            │
-         ┌─────────────────┼─────────────────┐
-         │                 │                 │
-         ▼                 ▼                 ▼
-    ┌─────────┐      ┌───────────┐     ┌───────────┐
-    │  Tutor  │      │   Card    │     │ Scheduler │
-    └────┬────┘      │ Generator │     └───────────┘
-         │           └─────┬─────┘
-         │                 │
-         │                 ▼
-         │          ┌───────────┐
-         └─────────►│  Quality  │
-                    │  Checker  │
-                    └───────────┘
+              ┌────────────┼────────────┐
+              │            │            │
+              ▼            ▼            ▼
+         ┌─────────┐  ┌───────────┐  ┌─────────┐
+         │  Tutor  │  │   Card    │  │ Quality │
+         └────┬────┘  │ Generator │  │ Checker │
+              │       └─────┬─────┘  └─────────┘
+              │             │              ▲
+              │             └──────────────┘
+              │                   │
+              └───────────────────┘
 ```
 
 ## Prerequisites
@@ -108,7 +104,7 @@ POST /api/chat
 }
 ```
 
-Response includes reply, generated cards, and due review count.
+Response includes reply and generated cards.
 
 ### Flashcard Generation
 
@@ -121,37 +117,17 @@ POST /api/flashcard
 }
 ```
 
-### Spaced Repetition
+### Prefetch Cards
 
 ```
-GET /api/cards/due
-```
-
-Returns cards due for review based on SM-2 scheduling.
-
-```
-POST /api/cards/{card_id}/review
+POST /api/prefetch
 {
-    "got_it": true,
-    "hesitation": false
+    "chapter_id": 1,
+    "scope": "single"
 }
 ```
 
-Records review result and updates next review date.
-
-## SM-2 Algorithm
-
-The Scheduler uses the SM-2 spaced repetition algorithm:
-
-- **New cards**: Review after 1 day
-- **Successful review**: Interval = previous interval × ease factor
-- **Failed review**: Reset to 1 day
-- **Ease factor**: Adjusts based on performance (minimum 1.3)
-
-Quality ratings from UI:
-- "Got It" with confidence → 5 (perfect recall)
-- "Got It" with hesitation → 4 (correct with hesitation)
-- "Study More" → 2 (needs review soon)
+Pre-generates cards in the background for faster response times.
 
 ## Project Structure
 
@@ -161,13 +137,11 @@ v5-multi-agent/
 │   ├── __init__.py
 │   ├── index.py              # FastAPI app + multi-agent graph
 │   ├── state.py              # Shared state definitions
-│   ├── spaced_repetition.py  # SM-2 algorithm
 │   └── agents/
 │       ├── __init__.py
 │       ├── tutor.py          # Tutor agent
 │       ├── card_generator.py # Card Generator agent
 │       ├── quality_checker.py# Quality Checker agent
-│       ├── scheduler.py      # Scheduler agent
 │       └── supervisor.py     # Supervisor/Coordinator
 ├── frontend/
 │   ├── index.html            # Single-file app
@@ -194,10 +168,9 @@ Traces show:
 
 | Aspect | v4 | v5 |
 |--------|----|----|
-| Agent count | 1 (monolithic) | 5 (specialized) |
+| Agent count | 1 (monolithic) | 4 (specialized) |
 | Routing | Simple node graph | Supervisor pattern |
 | Card quality | Generated directly | Generated → Quality checked |
-| Spaced repetition | None | SM-2 algorithm |
 | Models | gpt-4o-mini only | gpt-5-nano + gpt-4o-mini |
 
 ## Troubleshooting
@@ -209,10 +182,6 @@ Traces show:
 - Cards now pass through Quality Checker
 - Check LangSmith traces for quality check results
 
-**Spaced repetition not working**
-- Card states are stored in memory (resets on restart)
-- For persistence, modify `spaced_repetition.py` to use SQLite
-
 ## Cost Considerations
 
 StudyBuddy v5 uses multiple LLM calls per request:
@@ -220,6 +189,5 @@ StudyBuddy v5 uses multiple LLM calls per request:
 - Tutor: gpt-5-nano (explanations)
 - Card Generator: gpt-4o-mini (flashcard creation)
 - Quality Checker: gpt-5-nano (validation)
-- Scheduler: gpt-5-nano (study summaries)
 
 Monitor usage at platform.openai.com/usage.

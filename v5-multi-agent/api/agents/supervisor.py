@@ -2,7 +2,7 @@
 
 The Learning Coordinator (Supervisor) decides which agents to engage
 based on what the student needs, managing the workflow between
-tutoring, card generation, quality checking, and scheduling.
+tutoring, card generation, and quality checking.
 """
 
 from langchain_openai import ChatOpenAI
@@ -19,26 +19,22 @@ Your team:
   something the student should remember.
 - QUALITY_CHECKER: Validates flashcards. Always use after generating
   cards before showing to student.
-- SCHEDULER: Manages review timing. Use when student wants to
-  practice or asks what to study.
 
 Workflow patterns:
 1. Learning mode: question → TUTOR explains → CARD_GENERATOR creates →
    QUALITY_CHECKER validates → respond with explanation and cards
-2. Practice mode: SCHEDULER picks due cards → show for review
-3. Direct response: Simple greetings, clarifications, or meta-questions
+2. Direct response: Simple greetings, clarifications, or meta-questions
 
 Decision rules:
 - Questions about concepts → TUTOR first
 - "Create flashcards for X" → CARD_GENERATOR (then QUALITY_CHECKER)
-- "What should I study?" / "Start practice" → SCHEDULER
 - After TUTOR explains a key concept → consider CARD_GENERATOR
 - Never show cards that haven't passed QUALITY_CHECKER
 - Simple greetings/thanks → respond directly (no agent needed)
 
 Output format (JSON only):
 {
-    "next_agent": "tutor|card_generator|quality_checker|scheduler|respond",
+    "next_agent": "tutor|card_generator|quality_checker|respond",
     "reasoning": "Brief explanation of your decision",
     "task": "Specific instruction for the chosen agent (if not respond)"
 }
@@ -111,7 +107,7 @@ def route_request(
         decision = json.loads(content)
 
         # Validate next_agent
-        valid_agents = ["tutor", "card_generator", "quality_checker", "scheduler", "respond"]
+        valid_agents = ["tutor", "card_generator", "quality_checker", "respond"]
         if decision.get("next_agent") not in valid_agents:
             decision["next_agent"] = "tutor"  # Default to tutor
 

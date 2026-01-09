@@ -33,15 +33,6 @@ from qdrant_client.models import Distance, VectorParams
 
 # Local imports
 from .state import StudyBuddyState
-from .spaced_repetition import (
-    CardState,
-    create_card_state,
-    save_card_state,
-    get_card_state,
-    get_all_card_states,
-    sm2_update,
-    get_due_cards,
-)
 from .agents.tutor import create_tutor_agent, tutor_explain
 from .agents.card_generator import (
     create_card_generator_agent,
@@ -51,12 +42,6 @@ from .agents.card_generator import (
 from .agents.quality_checker import (
     create_quality_checker_agent,
     check_cards_batch,
-)
-from .agents.scheduler import (
-    create_scheduler_agent,
-    get_study_session,
-    get_session_summary,
-    quality_from_response,
 )
 from .agents.supervisor import (
     create_supervisor_agent,
@@ -230,7 +215,6 @@ def get_topics_for_scope(chapter_id: int, scope: str) -> list[dict]:
 tutor_llm = create_tutor_agent("gpt-5-nano")
 card_generator_llm = create_card_generator_agent("gpt-4o-mini")
 quality_checker_llm = create_quality_checker_agent("gpt-5-nano")
-scheduler_llm = create_scheduler_agent("gpt-5-nano")
 supervisor_llm = create_supervisor_agent("gpt-5-nano")
 
 
@@ -444,15 +428,6 @@ def quality_checker_node(state: StudyBuddyState) -> dict:
     return {"pending_cards": [], "approved_cards": approved}
 
 
-def scheduler_node(state: StudyBuddyState) -> dict:
-    """Get study schedule information."""
-    card_states = get_all_card_states()
-
-    summary = get_session_summary(scheduler_llm, card_states)
-
-    return {"response": summary}
-
-
 def respond_node(state: StudyBuddyState) -> dict:
     """Final response node - just passes through."""
     return {}
@@ -462,7 +437,7 @@ def route_after_supervisor(state: StudyBuddyState) -> str:
     """Route based on supervisor decision."""
     next_agent = state.get("next_agent", "respond")
 
-    if next_agent in ["tutor", "card_generator", "quality_checker", "scheduler"]:
+    if next_agent in ["tutor", "card_generator", "quality_checker"]:
         return next_agent
 
     return "respond"
@@ -500,7 +475,6 @@ def build_studybuddy_graph():
     graph.add_node("tutor", tutor_node)
     graph.add_node("card_generator", card_generator_node)
     graph.add_node("quality_checker", quality_checker_node)
-    graph.add_node("scheduler", scheduler_node)
     graph.add_node("respond", respond_node)
 
     # Entry point
@@ -514,7 +488,6 @@ def build_studybuddy_graph():
             "tutor": "tutor",
             "card_generator": "card_generator",
             "quality_checker": "quality_checker",
-            "scheduler": "scheduler",
             "respond": "respond",
         },
     )
@@ -533,9 +506,8 @@ def build_studybuddy_graph():
         {"quality_checker": "quality_checker", "respond": "respond"},
     )
 
-    # Quality checker and scheduler go to respond
+    # Quality checker goes to respond
     graph.add_edge("quality_checker", "respond")
-    graph.add_edge("scheduler", "respond")
 
     # Respond ends the graph
     graph.add_edge("respond", END)
@@ -601,7 +573,6 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     cards: list[dict] = []
-    due_reviews: int = 0
 
 
 class FlashcardRequest(BaseModel):
@@ -615,16 +586,6 @@ class FlashcardResponse(BaseModel):
     answer: str
     topic: str
     source: str
-
-
-class ReviewRequest(BaseModel):
-    got_it: bool
-    hesitation: bool = False
-
-
-class ReviewResponse(BaseModel):
-    next_review_days: int
-    ease_factor: float
 
 
 # ============== API Endpoints ==============
@@ -672,7 +633,6 @@ def chat(request: ChatRequest):
             "current_mode": "learning",
             "pending_cards": [],
             "approved_cards": [],
-            "card_states": [],
             "current_topic": "",
             "card_context": request.card_context,
             "response": "",
@@ -681,14 +641,9 @@ def chat(request: ChatRequest):
 
         result = studybuddy.invoke(initial_state)
 
-        # Get due cards count
-        card_states = get_all_card_states()
-        due = get_due_cards(card_states)
-
         return ChatResponse(
             reply=result.get("response", "I couldn't generate a response."),
             cards=result.get("approved_cards", []),
-            due_reviews=len(due),
         )
 
     except Exception as e:
@@ -811,49 +766,6 @@ def prefetch_cards(request: FlashcardRequest, background_tasks: BackgroundTasks)
         "scope": request.scope,
         "cards_requested": CACHE_SIZE,
     }
-
-
-@app.get("/api/cards/due")
-def get_due_cards_endpoint():
-    """Get cards due for review."""
-    card_states = get_all_card_states()
-    due = get_due_cards(card_states)
-
-    return {
-        "due_count": len(due),
-        "cards": [
-            {
-                "card_id": c.card_id,
-                "question": c.question,
-                "answer": c.answer,
-                "topic": c.topic,
-                "interval": c.interval,
-                "ease_factor": c.ease_factor,
-            }
-            for c in due[:10]  # Return top 10 due cards
-        ],
-    }
-
-
-@app.post("/api/cards/{card_id}/review", response_model=ReviewResponse)
-def record_card_review(card_id: str, request: ReviewRequest):
-    """Record a review result and update spaced repetition state."""
-    card_state = get_card_state(card_id)
-
-    if card_state is None:
-        raise HTTPException(status_code=404, detail=f"Card {card_id} not found")
-
-    # Convert UI response to quality rating
-    quality = quality_from_response(request.got_it, request.hesitation)
-
-    # Update using SM-2
-    updated = sm2_update(card_state, quality)
-    save_card_state(updated)
-
-    return ReviewResponse(
-        next_review_days=updated.interval,
-        ease_factor=updated.ease_factor,
-    )
 
 
 # Serve static files (local development only)
