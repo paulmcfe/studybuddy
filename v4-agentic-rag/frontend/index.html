@@ -761,23 +761,6 @@
             border: 0;
         }
 
-        /* ============== Skip Link ============== */
-        .skip-link {
-            position: absolute;
-            top: -40px;
-            left: 0;
-            padding: 8px 16px;
-            background: var(--color-primary);
-            color: hsl(0 0% 100%);
-            z-index: 1000;
-            transition: top 0.2s;
-            text-decoration: none;
-        }
-
-        .skip-link:focus {
-            top: 0;
-        }
-
         /* ============== Reduced Motion ============== */
         @media (prefers-reduced-motion: reduce) {
 
@@ -797,9 +780,6 @@
                 transition: none;
             }
 
-            .skip-link {
-                transition: none;
-            }
         }
 
         /* ============== Utility Classes ============== */
@@ -810,7 +790,6 @@
 </head>
 
 <body>
-    <a href="#main-content" class="skip-link">Skip to main content</a>
     <div id="sr-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
     <div class="app-container">
         <!-- Desktop Sidebar (visible >= 640px) -->
