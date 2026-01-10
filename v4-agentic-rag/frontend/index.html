@@ -23,6 +23,7 @@
 
             /* Backgrounds */
             --color-bg: hsl(0 0% 98%);
+            --color-bg-secondary: hsl(0 0% 94%);
             --color-card: hsl(0 0% 100%);
             --color-card-answer: hsl(120 33% 98%);
 
@@ -39,6 +40,31 @@
             --radius-md: 12px;
             --radius-lg: 16px;
             --shadow-card: 0 2px 10px hsl(0 0% 0% / 0.1);
+        }
+
+        /* ============== Dark Mode ============== */
+        [data-theme="dark"] {
+            /* Primary palette - slightly brighter for dark mode */
+            --color-primary: hsl(135 35% 45%);
+            --color-primary-light: hsl(140 20% 20%);
+            --color-primary-dark: hsl(135 30% 60%);
+
+            /* Backgrounds */
+            --color-bg: hsl(220 15% 13%);
+            --color-bg-secondary: hsl(220 15% 18%);
+            --color-card: hsl(220 15% 18%);
+            --color-card-answer: hsl(140 15% 18%);
+
+            /* Borders */
+            --color-border: hsl(220 10% 30%);
+
+            /* Text */
+            --color-text: hsl(0 0% 92%);
+            --color-text-muted: hsl(0 0% 70%);
+            --color-text-hint: hsl(0 0% 55%);
+
+            /* Shadow */
+            --shadow-card: 0 2px 10px hsl(0 0% 0% / 0.3);
         }
 
         /* ============== Base Styles ============== */
@@ -64,7 +90,7 @@
 
         /* ============== Header ============== */
         .header {
-            background: hsl(0 0% 94%);
+            background: var(--color-bg-secondary);
             padding: 16px 20px;
             text-align: center;
             border-bottom: 1px solid var(--color-border);
@@ -84,6 +110,40 @@
             width: 48;
             height: 48px;
             object-fit: contain;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            transition: background 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--color-border);
+        }
+
+        .theme-toggle .icon-sun { display: none; }
+        .theme-toggle .icon-moon { display: inline; }
+
+        [data-theme="dark"] .theme-toggle .icon-sun { display: inline; }
+        [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+        /* Dark mode dropdown arrow */
+        [data-theme="dark"] .chapter-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='hsl(0 0%25 70%25)' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
         }
 
         /* ============== Home Screen ============== */
@@ -296,8 +356,8 @@
             top: 12px;
             left: 12px;
             font-size: 0.6875rem;
-            color: hsl(0 0% 30%);
-            background: hsl(0 0% 94%);
+            color: var(--color-text-muted);
+            background: var(--color-bg-secondary);
             padding: 4px 10px;
             border-radius: 4px;
         }
@@ -489,7 +549,7 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid var(--color-border);
-            background: hsl(0 0% 94%);
+            background: var(--color-bg-secondary);
         }
 
         .chat-title {
@@ -531,7 +591,7 @@
         }
 
         .chat-message.assistant {
-            background: hsl(0 0% 94%);
+            background: var(--color-bg-secondary);
             align-self: flex-start;
             border-bottom-left-radius: 4px;
         }
@@ -557,6 +617,8 @@
             border-radius: 24px;
             font-size: 0.875rem;
             outline: none;
+            background: var(--color-card);
+            color: var(--color-text);
         }
 
         .chat-input:focus {
@@ -613,7 +675,7 @@
 
             .sidebar {
                 width: 280px;
-                background: hsl(0 0% 94%);
+                background: var(--color-bg-secondary);
                 border-right: 1px solid var(--color-border);
                 padding: 24px;
                 display: flex;
@@ -798,7 +860,13 @@
         <!-- Desktop Sidebar (visible >= 640px) -->
         <aside class="sidebar" id="sidebar">
             <header class="header">
-                <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy</h1>
+                <div class="header-content">
+                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy</h1>
+                    <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+                        <span class="icon-moon">🌙</span>
+                        <span class="icon-sun">☀️</span>
+                    </button>
+                </div>
             </header>
 
             <!-- Setup Controls (shown before studying) -->
@@ -849,7 +917,13 @@
         <main class="main-content" id="main-content">
             <!-- Mobile Header (visible < 640px) -->
             <header class="header" id="mobileHeader">
-                <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy</h1>
+                <div class="header-content">
+                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy</h1>
+                    <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+                        <span class="icon-moon">🌙</span>
+                        <span class="icon-sun">☀️</span>
+                    </button>
+                </div>
             </header>
 
             <!-- Home Screen (Mobile) -->
@@ -902,9 +976,9 @@
 
                 <nav class="action-buttons" id="actionButtons" aria-label="Flashcard actions">
                     <button type="button" class="action-btn btn-gotit" onclick="gotIt()" id="gotItBtn"
-                        aria-label="Got It, next card">✓ Got It</button>
+                        aria-label="Knew It, next card">✓ Knew It</button>
                     <button type="button" class="action-btn btn-studymore" onclick="studyMore()" id="studyMoreBtn"
-                        aria-label="Study more on this topic">↻ Study More</button>
+                        aria-label="Still learning this topic">↻ Still Learning</button>
                 </nav>
 
                 <button type="button" class="change-chapter-link" onclick="changeChapter()">← Change chapter</button>
@@ -934,6 +1008,24 @@
     </div>
 
     <script>
+        // ============== Theme ==============
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        // Initialize theme immediately to prevent flash
+        initTheme();
+
         // ============== State ==============
         const state = {
             chapters: [],
