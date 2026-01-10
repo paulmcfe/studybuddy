@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyBuddy v6</title>
+    <link rel="icon" type="image/png" sizes="96x96" href="/images/favicon-96x96.png">
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+    <link rel="manifest" href="/images/site.webmanifest">
+    <meta name="theme-color" content="#4a7c59">
+    <style>
+        /* ============== CSS Variables ============== */
+        :root {
+            /* Primary palette */
+            --color-primary: hsl(135 26% 39%);
+            --color-primary-light: hsl(120 40% 94%);
+            --color-primary-dark: hsl(140 29% 25%);
+
+            /* Secondary */
+            --color-secondary: hsl(36 86% 62%);
+
+            /* Backgrounds */
+            --color-bg: hsl(0 0% 98%);
+            --color-bg-secondary: hsl(0 0% 94%);
+            --color-card: hsl(0 0% 100%);
+            --color-card-answer: hsl(120 33% 98%);
+
+            /* Borders */
+            --color-border: hsl(0 0% 87%);
+
+            /* Text - with improved contrast */
+            --color-text: hsl(0 0% 20%);
+            --color-text-muted: hsl(0 0% 35%);
+            --color-text-hint: hsl(0 0% 46%);
+
+            /* Layout */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --shadow-card: 0 2px 10px hsl(0 0% 0% / 0.1);
+        }
+
+        /* ============== Dark Mode ============== */
+        [data-theme="dark"] {
+            /* Primary palette - slightly brighter for dark mode */
+            --color-primary: hsl(135 35% 45%);
+            --color-primary-light: hsl(140 20% 20%);
+            --color-primary-dark: hsl(135 30% 60%);
+
+            /* Backgrounds */
+            --color-bg: hsl(220 15% 13%);
+            --color-bg-secondary: hsl(220 15% 18%);
+            --color-card: hsl(220 15% 18%);
+            --color-card-answer: hsl(140 15% 18%);
+
+            /* Borders */
+            --color-border: hsl(220 10% 30%);
+
+            /* Text */
+            --color-text: hsl(0 0% 92%);
+            --color-text-muted: hsl(0 0% 70%);
+            --color-text-hint: hsl(0 0% 55%);
+
+            /* Shadow */
+            --shadow-card: 0 2px 10px hsl(0 0% 0% / 0.3);
+        }
+
+        /* ============== Base Styles ============== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            min-height: 100vh;
+        }
+
+        /* ============== App Container ============== */
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ============== Header ============== */
+        .header {
+            background: var(--color-bg-secondary);
+            padding: 16px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--color-text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .header-icon {
+            width: 48;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            transition: background 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--color-border);
+        }
+
+        .theme-toggle .icon-sun { display: none; }
+        .theme-toggle .icon-moon { display: inline; }
+
+        [data-theme="dark"] .theme-toggle .icon-sun { display: inline; }
+        [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+        /* Dark mode dropdown arrow */
+        [data-theme="dark"] .chapter-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='hsl(0 0%25 70%25)' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        }
+
+        /* ============== Home Screen ============== */
+        .home-screen {
+            flex: 1;
+            padding: 24px 20px;
+            display: flex;
+            flex-direction: column;
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            font-size: 0.75rem;
+            color: var(--color-text-hint);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .chapter-select {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 0.9375rem;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-card);
+            color: var(--color-text);
+            appearance: none;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='hsl(0 0%25 60%25)' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+        }
+
+        .chapter-select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .scope-toggle {
+            display: flex;
+            gap: 12px;
+        }
+
+        .scope-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-card);
+            font-size: 0.8125rem;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .scope-btn:hover {
+            border-color: var(--color-primary);
+        }
+
+        .scope-btn.active {
+            border-color: var(--color-primary);
+            background: var(--color-primary-light);
+            color: var(--color-primary-dark);
+        }
+
+        .start-btn {
+            width: 100%;
+            padding: 18px;
+            background: var(--color-primary);
+            color: hsl(0 0% 100%);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: auto;
+            margin-bottom: 16px;
+            transition: background 0.2s;
+        }
+
+        .start-btn:hover {
+            background: var(--color-primary-dark);
+        }
+
+        .start-btn:disabled {
+            background: hsl(0 0% 80%);
+            cursor: not-allowed;
+        }
+
+        .chat-link {
+            display: block;
+            width: 100%;
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            font-family: inherit;
+        }
+
+        .chat-link:hover {
+            color: var(--color-primary);
+        }
+
+        /* ============== Study Screen ============== */
+        .study-screen {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            min-height: 0;
+            /* Allow flex child to shrink */
+            overflow: hidden;
+        }
+
+        .study-screen.active {
+            display: flex;
+        }
+
+        .card-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            min-height: 0;
+            /* Allow flex child to shrink */
+            overflow: hidden;
+        }
+
+        /* ============== Flashcard ============== */
+        .flashcard-container {
+            width: 100%;
+            max-width: 400px;
+            max-height: 100%;
+            perspective: 1000px;
+        }
+
+        .flashcard {
+            position: relative;
+            width: 100%;
+            min-height: 280px;
+            max-height: 100%;
+            height: 280px;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+
+        /* On mobile, let flashcard fill available space */
+        @media (max-width: 639px) {
+            .flashcard-container {
+                height: 100%;
+            }
+
+            .flashcard {
+                height: 100%;
+                max-height: 400px;
+            }
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard.loading {
+            pointer-events: none;
+        }
+
+        .card-face {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            backface-visibility: hidden;
+            border: 2px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 48px 24px 40px 24px;
+            /* top padding for topic label, bottom for hint */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+        }
+
+        .card-front {
+            background: var(--color-card);
+        }
+
+        .card-back {
+            background: var(--color-card-answer);
+            transform: rotateY(180deg);
+        }
+
+        .card-topic {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            font-size: 0.6875rem;
+            color: var(--color-text-muted);
+            background: var(--color-bg-secondary);
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+
+        .card-source {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 0.625rem;
+            color: hsl(0 0% 32%);
+        }
+
+        .card-question {
+            font-size: 1.0625rem;
+            line-height: 1.5;
+            color: var(--color-text);
+            max-width: 320px;
+            overflow-y: auto;
+            max-height: 100%;
+            padding-right: 8px;
+        }
+
+        .card-answer {
+            font-size: 0.9375rem;
+            line-height: 1.6;
+            color: var(--color-text);
+            max-width: 320px;
+            overflow-y: auto;
+            max-height: 100%;
+            padding-right: 8px;
+        }
+
+        .card-hint {
+            position: absolute;
+            bottom: 16px;
+            font-size: 0.75rem;
+            color: var(--color-text-hint);
+        }
+
+        /* Loading state */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid hsl(0 0% 93%);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            margin-top: 12px;
+            color: var(--color-text-hint);
+            font-size: 0.875rem;
+        }
+
+        /* ============== Action Buttons ============== */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            padding: 0 20px 16px 20px;
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.9375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .action-btn:active {
+            transform: scale(0.98);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-gotit {
+            background: var(--color-primary);
+            color: hsl(0 0% 100%);
+        }
+
+        .btn-studymore {
+            background: var(--color-secondary);
+            color: hsl(0 0% 15%);
+        }
+
+        .study-chat-link {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 12px;
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            border: none;
+            border-top: 1px solid hsl(0 0% 93%);
+            background: none;
+            font-family: inherit;
+        }
+
+        .study-chat-link:hover {
+            color: var(--color-primary);
+        }
+
+        .change-chapter-link {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 12px;
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-family: inherit;
+        }
+
+        .change-chapter-link:hover {
+            color: var(--color-primary);
+        }
+
+        /* Hide on desktop - sidebar has this functionality */
+        @media (min-width: 640px) {
+            .change-chapter-link {
+                display: none;
+            }
+        }
+
+        /* ============== Chat Panel ============== */
+        .chat-panel {
+            position: fixed;
+            background: var(--color-card);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            z-index: 100;
+        }
+
+        /* Mobile: slide up from bottom */
+        @media (max-width: 639px) {
+            .chat-panel {
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 90vh;
+                border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+                transform: translateY(100%);
+            }
+
+            .chat-panel.open {
+                transform: translateY(0);
+            }
+        }
+
+        /* Tablet/Desktop: slide in from right */
+        @media (min-width: 640px) {
+            .chat-panel {
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 400px;
+                border-left: 1px solid var(--color-border);
+                transform: translateX(100%);
+            }
+
+            .chat-panel.open {
+                transform: translateX(0);
+            }
+        }
+
+        .chat-header {
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--color-border);
+            background: var(--color-bg-secondary);
+        }
+
+        .chat-title {
+            font-size: 0.9375rem;
+            font-weight: 500;
+        }
+
+        .chat-close {
+            font-size: 0.8125rem;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            padding: 4px 8px;
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+
+        .chat-close:hover {
+            color: var(--color-text);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            list-style: none;
+            margin: 0;
+        }
+
+        .chat-message {
+            max-width: 85%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .chat-message.assistant {
+            background: var(--color-bg-secondary);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-message.user {
+            background: var(--color-primary);
+            color: hsl(0 0% 100%);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-input-area {
+            padding: 12px 16px;
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid var(--color-border);
+            border-radius: 24px;
+            font-size: 0.875rem;
+            outline: none;
+            background: var(--color-card);
+            color: var(--color-text);
+        }
+
+        .chat-input:focus {
+            border-color: var(--color-primary);
+        }
+
+        .chat-send {
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 50%;
+            background: var(--color-primary);
+            color: hsl(0 0% 100%);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem;
+        }
+
+        .chat-send:disabled {
+            background: hsl(0 0% 80%);
+            cursor: not-allowed;
+        }
+
+        /* Chat overlay for mobile */
+        .chat-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: hsl(0 0% 0% / 0.3);
+            z-index: 99;
+        }
+
+        .chat-overlay.active {
+            display: block;
+        }
+
+        /* ============== Main Content ============== */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            /* Allow flex child to shrink */
+            overflow: hidden;
+        }
+
+        /* ============== Desktop Sidebar Layout ============== */
+        @media (min-width: 640px) {
+            .app-container {
+                flex-direction: row;
+            }
+
+            .sidebar {
+                width: 280px;
+                background: var(--color-bg-secondary);
+                border-right: 1px solid var(--color-border);
+                padding: 24px;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .sidebar .header {
+                background: none;
+                border: none;
+                padding: 0;
+                margin-bottom: 30px;
+                text-align: left;
+            }
+
+            .sidebar .header h1 {
+                font-size: 1.375rem;
+            }
+
+            .home-screen {
+                display: none;
+            }
+
+            .sidebar .form-group {
+                margin-bottom: 20px;
+            }
+
+            .scope-toggle {
+                flex-direction: column;
+            }
+
+            .sidebar .start-btn {
+                margin-top: auto;
+            }
+
+            .sidebar .chat-link {
+                margin-top: 16px;
+            }
+
+            /* When studying, show current status instead of dropdowns */
+            .sidebar.studying .setup-controls {
+                display: none;
+            }
+
+            .sidebar.studying .study-status {
+                display: block;
+            }
+
+            .study-status {
+                display: none;
+            }
+
+            .current-chapter {
+                background: var(--color-primary-light);
+                border-radius: var(--radius-sm);
+                padding: 12px;
+                margin-bottom: 20px;
+            }
+
+            .current-chapter-label {
+                font-size: 0.6875rem;
+                color: var(--color-text-hint);
+                text-transform: uppercase;
+                margin-bottom: 4px;
+            }
+
+            .current-chapter-title {
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: var(--color-primary-dark);
+            }
+
+            .current-chapter-scope {
+                font-size: 0.75rem;
+                color: var(--color-text-muted);
+                margin-top: 4px;
+            }
+
+            .current-topic {
+                background: var(--color-card);
+                border-radius: var(--radius-sm);
+                padding: 12px;
+                margin-bottom: 20px;
+            }
+
+            .current-topic-label {
+                font-size: 0.6875rem;
+                color: var(--color-text-hint);
+                text-transform: uppercase;
+                margin-bottom: 4px;
+            }
+
+            .current-topic-name {
+                font-size: 0.875rem;
+                color: var(--color-text);
+            }
+
+            .sidebar .change-chapter-link {
+                display: block;
+                width: 100%;
+                color: var(--color-text-muted);
+                font-size: 0.8125rem;
+                cursor: pointer;
+                margin-top: auto;
+                margin-bottom: 12px;
+                background: none;
+                border: none;
+                padding: 0;
+                font-family: inherit;
+                text-align: left;
+            }
+
+            .sidebar .change-chapter-link:hover {
+                color: var(--color-primary);
+            }
+        }
+
+        /* Hide sidebar on mobile */
+        @media (max-width: 639px) {
+            .sidebar {
+                display: none;
+            }
+
+            .home-screen {
+                display: flex;
+            }
+
+            .home-screen.hidden {
+                display: none;
+            }
+        }
+
+        /* ============== Focus Styles ============== */
+        :focus-visible {
+            outline: 3px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+
+        /* ============== Screen Reader Only ============== */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* ============== Reduced Motion ============== */
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+
+            .flashcard {
+                transition: none;
+            }
+
+            .chat-panel {
+                transition: none;
+            }
+
+        }
+
+        /* ============== Utility Classes ============== */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="sr-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+    <div class="app-container">
+        <!-- Desktop Sidebar (visible >= 640px) -->
+        <aside class="sidebar" id="sidebar">
+            <header class="header">
+                <div class="header-content">
+                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy</h1>
+                    <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+                        <span class="icon-moon">🌙</span>
+                        <span class="icon-sun">☀️</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Setup Controls (shown before studying) -->
+            <div class="setup-controls">
+                <div class="form-group">
+                    <label class="form-label" for="sidebarChapterSelect">Select Chapter</label>
+                    <select class="chapter-select" id="sidebarChapterSelect">
+                        <option value="">Loading chapters...</option>
+                    </select>
+                </div>
+
+                <div class="form-group hidden" id="sidebarScopeGroup">
+                    <label class="form-label" id="sidebarScopeLabel">Study Scope</label>
+                    <div class="scope-toggle" role="group" aria-labelledby="sidebarScopeLabel">
+                        <button type="button" class="scope-btn active" data-scope="single"
+                            onclick="setScope('single', this)" aria-pressed="true">This chapter only</button>
+                        <button type="button" class="scope-btn" data-scope="cumulative"
+                            onclick="setScope('cumulative', this)" aria-pressed="false">
+                            <span id="sidebarCumulativeLabel">Chapters 1-2</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="button" class="start-btn" id="sidebarStartBtn" onclick="startStudying()">Start
+                    Studying</button>
+                <button type="button" class="chat-link" onclick="openChat()">💬 Just want to chat?</button>
+            </div>
+
+            <!-- Study Status (shown while studying) -->
+            <div class="study-status">
+                <div class="current-chapter">
+                    <div class="current-chapter-label">Currently Studying</div>
+                    <div class="current-chapter-title" id="sidebarCurrentChapter">-</div>
+                    <div class="current-chapter-scope" id="sidebarCurrentScope">-</div>
+                </div>
+
+                <div class="current-topic">
+                    <div class="current-topic-label">Current Topic</div>
+                    <div class="current-topic-name" id="sidebarCurrentTopic">-</div>
+                </div>
+
+                <button type="button" class="change-chapter-link" onclick="changeChapter()">← Change Chapter</button>
+                <button type="button" class="chat-link" onclick="openChat()">💬 Ask StudyBuddy</button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content" id="main-content">
+            <!-- Mobile Header (visible < 640px) -->
+            <header class="header" id="mobileHeader">
+                <div class="header-content">
+                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy</h1>
+                    <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+                        <span class="icon-moon">🌙</span>
+                        <span class="icon-sun">☀️</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Home Screen (Mobile) -->
+            <section class="home-screen" id="homeScreen" aria-labelledby="mobileHeader">
+                <div class="form-group">
+                    <label class="form-label" for="chapterSelect">Select Chapter</label>
+                    <select class="chapter-select" id="chapterSelect">
+                        <option value="">Loading chapters...</option>
+                    </select>
+                </div>
+
+                <div class="form-group hidden" id="mobileScopeGroup">
+                    <label class="form-label" id="mobileScopeLabel">Study Scope</label>
+                    <div class="scope-toggle" role="group" aria-labelledby="mobileScopeLabel">
+                        <button type="button" class="scope-btn active" data-scope="single"
+                            onclick="setScope('single', this)" aria-pressed="true">This chapter only</button>
+                        <button type="button" class="scope-btn" data-scope="cumulative"
+                            onclick="setScope('cumulative', this)" aria-pressed="false">
+                            <span id="cumulativeLabel">Chapters 1-2</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="button" class="start-btn" id="startBtn" onclick="startStudying()">Start Studying</button>
+                <button type="button" class="chat-link" onclick="openChat()">💬 Just want to chat?</button>
+            </section>
+
+            <!-- Study Screen -->
+            <section class="study-screen" id="studyScreen" aria-hidden="true">
+                <div class="card-area">
+                    <div class="flashcard-container">
+                        <article class="flashcard" id="flashcard" onclick="flipCard()" role="button" tabindex="0"
+                            aria-pressed="false" aria-label="Flashcard. Press Space or Enter to flip.">
+                            <div class="card-face card-front" id="cardFront">
+                                <span class="card-topic" id="cardTopic">-</span>
+                                <div class="card-question" id="cardQuestion" aria-live="polite" aria-busy="false">
+                                    <div class="loading-spinner"></div>
+                                    <div class="loading-text">Generating flashcard...</div>
+                                </div>
+                                <span class="card-hint">tap to reveal answer</span>
+                            </div>
+                            <div class="card-face card-back" id="cardBack">
+                                <span class="card-topic" id="cardTopicBack">-</span>
+                                <span class="card-source" id="cardSource">-</span>
+                                <div class="card-answer" id="cardAnswer">-</div>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+
+                <nav class="action-buttons" id="actionButtons" aria-label="Flashcard actions">
+                    <button type="button" class="action-btn btn-gotit" onclick="gotIt()" id="gotItBtn"
+                        aria-label="Knew It, next card">✓ Knew It</button>
+                    <button type="button" class="action-btn btn-studymore" onclick="studyMore()" id="studyMoreBtn"
+                        aria-label="Still learning this topic">↻ Still Learning</button>
+                </nav>
+
+                <button type="button" class="change-chapter-link" onclick="changeChapter()">← Change chapter</button>
+                <button type="button" class="study-chat-link" onclick="openChat()">💬 Ask StudyBuddy</button>
+            </section>
+        </main>
+    </div>
+
+    <!-- Chat Panel -->
+    <div class="chat-overlay" id="chatOverlay" onclick="closeChat()" aria-hidden="true"></div>
+    <div class="chat-panel" id="chatPanel" role="dialog" aria-modal="true" aria-labelledby="chatTitle"
+        aria-hidden="true">
+        <div class="chat-header">
+            <h2 id="chatTitle" class="chat-title">💬 Ask StudyBuddy</h2>
+            <button type="button" class="chat-close" onclick="closeChat()" aria-label="Close chat">✕ Close</button>
+        </div>
+        <ul class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-label="Chat messages">
+            <!-- Messages will be added here -->
+        </ul>
+        <div class="chat-input-area">
+            <label for="chatInput" class="sr-only">Type your question</label>
+            <input type="text" class="chat-input" id="chatInput" placeholder="Type your question..."
+                onkeydown="handleChatKeydown(event)">
+            <button type="button" class="chat-send" id="chatSendBtn" onclick="sendChatMessage()"
+                aria-label="Send message">→</button>
+        </div>
+    </div>
+
+    <script>
+        // ============== Theme ==============
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        // Initialize theme immediately to prevent flash
+        initTheme();
+
+        // ============== State ==============
+        const state = {
+            chapters: [],
+            selectedChapter: null,
+            scope: 'single',
+            currentCard: null,
+            isFlipped: false,
+            isLoading: false,
+            chatOpen: false,
+            chatMessages: [],
+            currentScreen: 'home',
+            previousFocus: null
+        };
+
+        // ============== DOM Elements ==============
+        const $ = id => document.getElementById(id);
+
+        // ============== Accessibility Helpers ==============
+        function announceToScreenReader(message) {
+            const announcer = $('sr-announcer');
+            announcer.textContent = '';
+            // Use setTimeout to ensure the change is detected
+            setTimeout(() => {
+                announcer.textContent = message;
+            }, 50);
+        }
+
+        function trapFocus(element) {
+            const focusables = element.querySelectorAll(
+                'button, input, [tabindex]:not([tabindex="-1"])'
+            );
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+
+            element.addEventListener('keydown', (e) => {
+                if (e.key !== 'Tab') return;
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            });
+        }
+
+        // ============== Initialize ==============
+        async function init() {
+            await loadChapters();
+            // Set up focus trap for chat panel
+            trapFocus($('chatPanel'));
+            // Add keyboard handler for flashcard
+            $('flashcard').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    flipCard();
+                }
+            });
+        }
+
+        // ============== API Calls ==============
+        async function loadChapters() {
+            try {
+                const response = await fetch('/api/chapters');
+                const data = await response.json();
+                state.chapters = data.chapters;
+                populateChapterDropdowns();
+            } catch (error) {
+                console.error('Failed to load chapters:', error);
+                $('chapterSelect').innerHTML = '<option value="">Error loading chapters</option>';
+                $('sidebarChapterSelect').innerHTML = '<option value="">Error loading chapters</option>';
+            }
+        }
+
+        async function fetchFlashcard(currentTopic = null, previousQuestion = null) {
+            if (!state.selectedChapter) return;
+
+            state.isLoading = true;
+            updateCardUI();
+
+            try {
+                const body = {
+                    chapter_id: state.selectedChapter.id,
+                    scope: state.scope
+                };
+                if (currentTopic) {
+                    body.current_topic = currentTopic;
+                }
+                if (previousQuestion) {
+                    body.previous_question = previousQuestion;
+                }
+
+                const response = await fetch('/api/flashcard', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate flashcard');
+                }
+
+                const card = await response.json();
+                state.currentCard = card;
+                state.isFlipped = false;
+                state.isLoading = false;
+                updateCardUI();
+            } catch (error) {
+                console.error('Flashcard error:', error);
+                state.isLoading = false;
+                state.currentCard = {
+                    question: 'Error loading flashcard. Please try again.',
+                    answer: 'Click "Got it" to try another card.',
+                    topic: 'Error',
+                    source: 'error'
+                };
+                updateCardUI();
+            }
+        }
+
+        async function sendChat(message) {
+            const chatMessages = $('chatMessages');
+
+            // Add user message
+            addChatMessage('user', message);
+
+            // Add loading indicator
+            const loadingLi = document.createElement('li');
+            loadingLi.className = 'chat-message assistant';
+            loadingLi.id = 'chatLoading';
+            loadingLi.textContent = 'Thinking...';
+            chatMessages.appendChild(loadingLi);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                const body = {
+                    message: message
+                };
+
+                // Add card context if we're in study mode
+                if (state.currentCard && state.currentScreen === 'study') {
+                    body.card_context = {
+                        question: state.currentCard.question,
+                        answer: state.currentCard.answer,
+                        topic: state.currentCard.topic
+                    };
+                }
+
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await response.json();
+
+                // Remove loading indicator
+                const loading = $('chatLoading');
+                if (loading) loading.remove();
+
+                // Add assistant response
+                addChatMessage('assistant', data.reply);
+
+            } catch (error) {
+                console.error('Chat error:', error);
+                const loading = $('chatLoading');
+                if (loading) loading.remove();
+                addChatMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+            }
+        }
+
+        // ============== UI Updates ==============
+        function populateChapterDropdowns() {
+            const options = state.chapters.map(ch =>
+                `<option value="${ch.id}">Chapter ${ch.id}: ${ch.title}</option>`
+            ).join('');
+
+            $('chapterSelect').innerHTML = options;
+            $('sidebarChapterSelect').innerHTML = options;
+
+            // Select Chapter 1 by default
+            if (state.chapters.length > 0) {
+                const firstChapter = state.chapters[0];
+                $('chapterSelect').value = firstChapter.id;
+                $('sidebarChapterSelect').value = firstChapter.id;
+                state.selectedChapter = firstChapter;
+                updateCumulativeLabels();
+            }
+        }
+
+        function updateCardUI() {
+            const flashcard = $('flashcard');
+            const cardQuestion = $('cardQuestion');
+            const cardAnswer = $('cardAnswer');
+            const cardTopic = $('cardTopic');
+            const cardTopicBack = $('cardTopicBack');
+            const cardSource = $('cardSource');
+            const gotItBtn = $('gotItBtn');
+            const studyMoreBtn = $('studyMoreBtn');
+
+            if (state.isLoading) {
+                flashcard.classList.add('loading');
+                flashcard.classList.remove('flipped');
+                cardQuestion.innerHTML = `
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Generating flashcard...</div>
+                `;
+                cardQuestion.setAttribute('aria-busy', 'true');
+                cardTopic.textContent = '-';
+                gotItBtn.disabled = true;
+                studyMoreBtn.disabled = true;
+                return;
+            }
+
+            flashcard.classList.remove('loading');
+            cardQuestion.setAttribute('aria-busy', 'false');
+            gotItBtn.disabled = false;
+            studyMoreBtn.disabled = false;
+
+            if (state.currentCard) {
+                cardQuestion.textContent = state.currentCard.question;
+                cardAnswer.textContent = state.currentCard.answer;
+                cardTopic.textContent = state.currentCard.topic;
+                cardTopicBack.textContent = state.currentCard.topic;
+
+                const sourceText = state.currentCard.source === 'rag'
+                    ? 'From study materials'
+                    : 'Based on AI knowledge';
+                cardSource.textContent = sourceText;
+
+                // Announce new card to screen readers
+                if (!state.isFlipped) {
+                    announceToScreenReader(`New flashcard: ${state.currentCard.question}`);
+                }
+            }
+
+            // Update aria-pressed for flip state
+            flashcard.setAttribute('aria-pressed', state.isFlipped ? 'true' : 'false');
+
+            if (state.isFlipped) {
+                flashcard.classList.add('flipped');
+            } else {
+                flashcard.classList.remove('flipped');
+            }
+
+            // Update sidebar if in desktop mode
+            $('sidebarCurrentTopic').textContent = state.currentCard?.topic || '-';
+        }
+
+        function updateCumulativeLabels() {
+            if (!state.selectedChapter) return;
+
+            const chapterId = state.selectedChapter.id;
+            const showScope = chapterId > 1;
+
+            // Show/hide scope toggle based on chapter selection
+            $('mobileScopeGroup').classList.toggle('hidden', !showScope);
+            $('sidebarScopeGroup').classList.toggle('hidden', !showScope);
+
+            if (showScope) {
+                // Update cumulative label
+                const label = `Chapters 1-${chapterId}`;
+                $('cumulativeLabel').textContent = label;
+                $('sidebarCumulativeLabel').textContent = label;
+            } else {
+                // Reset to single chapter scope when hiding
+                state.scope = 'single';
+                document.querySelectorAll('.scope-btn').forEach(btn => {
+                    const isActive = btn.dataset.scope === 'single';
+                    btn.classList.toggle('active', isActive);
+                    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                });
+            }
+        }
+
+        function addChatMessage(role, content) {
+            const chatMessages = $('chatMessages');
+            const messageLi = document.createElement('li');
+            messageLi.className = `chat-message ${role}`;
+            messageLi.textContent = content;
+            chatMessages.appendChild(messageLi);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            state.chatMessages.push({ role, content });
+        }
+
+        // ============== Event Handlers ==============
+        function setScope(scope, clickedBtn) {
+            state.scope = scope;
+
+            // Update all scope buttons with aria-pressed
+            document.querySelectorAll('.scope-btn').forEach(btn => {
+                const isActive = btn.dataset.scope === scope;
+                btn.classList.toggle('active', isActive);
+                btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+        }
+
+        function onChapterSelect(selectElement) {
+            const chapterId = parseInt(selectElement.value);
+            state.selectedChapter = state.chapters.find(ch => ch.id === chapterId) || null;
+            updateCumulativeLabels();
+
+            // Sync both dropdowns
+            $('chapterSelect').value = selectElement.value;
+            $('sidebarChapterSelect').value = selectElement.value;
+        }
+
+        function startStudying() {
+            if (!state.selectedChapter) {
+                alert('Please select a chapter first');
+                return;
+            }
+
+            state.currentScreen = 'study';
+
+            // Update UI
+            $('homeScreen').classList.add('hidden');
+            $('homeScreen').setAttribute('aria-hidden', 'true');
+            $('studyScreen').classList.add('active');
+            $('studyScreen').setAttribute('aria-hidden', 'false');
+            $('sidebar').classList.add('studying');
+
+            // Update sidebar status
+            $('sidebarCurrentChapter').textContent = `Chapter ${state.selectedChapter.id}: ${state.selectedChapter.title}`;
+            $('sidebarCurrentScope').textContent = state.scope === 'single'
+                ? 'This chapter only'
+                : `Chapters 1-${state.selectedChapter.id}`;
+
+            // Fetch first card and focus on it
+            fetchFlashcard();
+            $('flashcard').focus();
+        }
+
+        function changeChapter() {
+            state.currentScreen = 'home';
+            state.currentCard = null;
+            state.isFlipped = false;
+
+            $('homeScreen').classList.remove('hidden');
+            $('homeScreen').setAttribute('aria-hidden', 'false');
+            $('studyScreen').classList.remove('active');
+            $('studyScreen').setAttribute('aria-hidden', 'true');
+            $('sidebar').classList.remove('studying');
+        }
+
+        function flipCard() {
+            if (state.isLoading || !state.currentCard) return;
+            state.isFlipped = !state.isFlipped;
+            updateCardUI();
+
+            // Announce flip to screen readers
+            const message = state.isFlipped
+                ? `Answer: ${state.currentCard.answer}`
+                : `Question: ${state.currentCard.question}`;
+            announceToScreenReader(message);
+        }
+
+        function gotIt() {
+            state.isFlipped = false;
+            fetchFlashcard(); // New topic
+            $('flashcard').focus();
+        }
+
+        function studyMore() {
+            state.isFlipped = false;
+            // Pass both the topic and the previous question to get a different card
+            fetchFlashcard(state.currentCard?.topic, state.currentCard?.question);
+            $('flashcard').focus();
+        }
+
+        function openChat() {
+            state.previousFocus = document.activeElement;
+            state.chatOpen = true;
+            $('chatPanel').classList.add('open');
+            $('chatPanel').setAttribute('aria-hidden', 'false');
+            $('chatOverlay').classList.add('active');
+            $('chatOverlay').setAttribute('aria-hidden', 'false');
+            $('chatInput').focus();
+
+            // Add context message if in study mode
+            if (state.chatMessages.length === 0) {
+                if (state.currentCard && state.currentScreen === 'study') {
+                    addChatMessage('assistant', `I see you're studying "${state.currentCard.topic}". What would you like to know more about?`);
+                } else {
+                    addChatMessage('assistant', "Hey! I'm here to help you learn AI Engineering. What would you like to explore?");
+                }
+            }
+        }
+
+        function closeChat() {
+            state.chatOpen = false;
+            $('chatPanel').classList.remove('open');
+            $('chatPanel').setAttribute('aria-hidden', 'true');
+            $('chatOverlay').classList.remove('active');
+            $('chatOverlay').setAttribute('aria-hidden', 'true');
+            // Restore focus to previous element
+            if (state.previousFocus) {
+                state.previousFocus.focus();
+            }
+        }
+
+        function sendChatMessage() {
+            const input = $('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            input.value = '';
+            sendChat(message);
+        }
+
+        function handleChatKeydown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendChatMessage();
+            }
+            if (event.key === 'Escape') {
+                closeChat();
+            }
+        }
+
+        // ============== Event Listeners ==============
+        $('chapterSelect').addEventListener('change', function () {
+            onChapterSelect(this);
+        });
+
+        $('sidebarChapterSelect').addEventListener('change', function () {
+            onChapterSelect(this);
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function (event) {
+            // Space to flip card in study mode
+            if (event.code === 'Space' && state.currentScreen === 'study' && !state.chatOpen) {
+                event.preventDefault();
+                flipCard();
+            }
+            // Escape to close chat
+            if (event.key === 'Escape' && state.chatOpen) {
+                closeChat();
+            }
+        });
+
+        // ============== Start ==============
+        init();
+    </script>
+</body>
+
+</html>
