@@ -117,18 +117,6 @@ POST /api/flashcard
 }
 ```
 
-### Prefetch Cards
-
-```
-POST /api/prefetch
-{
-    "chapter_id": 1,
-    "scope": "single"
-}
-```
-
-Pre-generates cards in the background for faster response times.
-
 ## Project Structure
 
 ```

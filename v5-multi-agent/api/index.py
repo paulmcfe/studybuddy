@@ -4,18 +4,17 @@ This is the main FastAPI application that orchestrates multiple specialized
 agents using the supervisor pattern to provide an intelligent tutoring experience.
 """
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from pathlib import Path
-import threading
 import os
 import re
 import random
+import threading
 from typing import Optional
-from collections import deque
 from dotenv import load_dotenv
 
 # LangChain imports
@@ -231,138 +230,6 @@ def search_materials(query: str, k: int = 4) -> str:
         formatted.append(f"[{source}]:\n{doc.page_content}")
 
     return "\n\n---\n\n".join(formatted)
-
-
-# ============== Background Card Generation ==============
-
-# Card cache: key = (chapter_id, scope, topic or None), value = deque of pre-generated cards
-_card_cache: dict[tuple, deque] = {}
-_cache_lock = threading.Lock()
-
-# Track number of generations in progress per cache key
-_generations_in_progress: dict[tuple, int] = {}
-
-# How many cards to keep pre-generated per chapter/scope
-CACHE_SIZE = 3
-
-
-def _get_cache_key(chapter_id: int, scope: str, topic: str | None = None) -> tuple:
-    """Generate a cache key for the given parameters."""
-    return (chapter_id, scope, topic)
-
-
-def _generate_card_sync(chapter_id: int, scope: str, topic: str | None = None) -> dict | None:
-    """Generate a single flashcard synchronously (for background thread)."""
-    if not indexing_status["done"]:
-        return None
-
-    topics = get_topics_for_scope(chapter_id, scope)
-    if not topics:
-        return None
-
-    # Select topic
-    if topic:
-        matching = [t for t in topics if t["section_name"] == topic]
-        selected_topic = matching[0] if matching else random.choice(topics)
-    else:
-        selected_topic = random.choice(topics)
-
-    topic_name = selected_topic["section_name"]
-    subtopics = selected_topic["subtopics"]
-
-    # Build search queries
-    search_queries = [topic_name]
-    if subtopics:
-        search_queries.extend(subtopics[:2])
-
-    # Retrieve documents
-    all_docs = []
-    seen = set()
-    for query in search_queries:
-        docs = vector_store.similarity_search(query, k=3)
-        for doc in docs:
-            content_hash = hash(doc.page_content[:200])
-            if content_hash not in seen:
-                seen.add(content_hash)
-                all_docs.append(doc)
-
-    source = "rag" if len(all_docs) >= 2 else "llm"
-    context = "\n\n---\n\n".join([doc.page_content for doc in all_docs[:5]]) if all_docs else ""
-
-    # Generate card
-    card = generate_single_card(card_generator_llm, topic_name, subtopics, context)
-    if card is None:
-        return None
-
-    # Quality check
-    approved = check_cards_batch(quality_checker_llm, [card])
-    if approved:
-        card = approved[0]
-
-    card["topic"] = topic_name
-    card["source"] = source
-    return card
-
-
-def _background_generate(chapter_id: int, scope: str, topic: str | None = None):
-    """Background task to generate and cache a card."""
-    cache_key = _get_cache_key(chapter_id, scope, topic)
-
-    try:
-        card = _generate_card_sync(chapter_id, scope, topic)
-        if card:
-            with _cache_lock:
-                if cache_key not in _card_cache:
-                    _card_cache[cache_key] = deque(maxlen=CACHE_SIZE)
-                _card_cache[cache_key].append(card)
-    finally:
-        with _cache_lock:
-            _generations_in_progress[cache_key] = _generations_in_progress.get(cache_key, 1) - 1
-            if _generations_in_progress[cache_key] <= 0:
-                del _generations_in_progress[cache_key]
-
-
-def get_cached_card(chapter_id: int, scope: str, topic: str | None = None) -> dict | None:
-    """Get a pre-generated card from cache, or None if cache is empty."""
-    cache_key = _get_cache_key(chapter_id, scope, topic)
-
-    with _cache_lock:
-        if cache_key in _card_cache and _card_cache[cache_key]:
-            return _card_cache[cache_key].popleft()
-    return None
-
-
-def trigger_background_generation(chapter_id: int, scope: str, topic: str | None = None):
-    """Trigger background card generation to keep cache full.
-
-    Starts enough background threads to fill the cache to CACHE_SIZE.
-    """
-    cache_key = _get_cache_key(chapter_id, scope, topic)
-
-    with _cache_lock:
-        current_size = len(_card_cache.get(cache_key, []))
-        in_progress = _generations_in_progress.get(cache_key, 0)
-
-        # How many more cards do we need to reach CACHE_SIZE?
-        needed = CACHE_SIZE - current_size - in_progress
-
-        if needed > 0:
-            # Start generation threads for each card we need
-            _generations_in_progress[cache_key] = in_progress + needed
-
-            for _ in range(needed):
-                thread = threading.Thread(
-                    target=_background_generate,
-                    args=(chapter_id, scope, topic),
-                    daemon=True
-                )
-                thread.start()
-
-
-def prefill_cache(chapter_id: int, scope: str):
-    """Prefill the cache with cards for a chapter/scope (called when user starts studying)."""
-    for _ in range(CACHE_SIZE):
-        trigger_background_generation(chapter_id, scope, None)
 
 
 # ============== LangGraph Node Implementations ==============
@@ -651,23 +518,16 @@ def chat(request: ChatRequest):
 
 
 @app.post("/api/flashcard", response_model=FlashcardResponse)
-def generate_flashcard(request: FlashcardRequest, background_tasks: BackgroundTasks):
-    """Generate a single flashcard scoped to selected chapters.
-
-    Uses background-generated cards from cache when available for instant response.
-    Triggers background generation to keep the cache filled.
-    """
+def generate_flashcard(request: FlashcardRequest):
+    """Generate a single flashcard scoped to selected chapters."""
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
 
-    # On Vercel, initialize synchronously on first request
     if IS_VERCEL:
         ensure_initialized()
     elif not indexing_status["done"]:
-        raise HTTPException(
-            status_code=503, detail="Still indexing documents. Please wait."
-        )
+        raise HTTPException(status_code=503, detail="Still indexing documents.")
 
     # Get topics for the requested scope
     topics = get_topics_for_scope(request.chapter_id, request.scope)
@@ -676,96 +536,35 @@ def generate_flashcard(request: FlashcardRequest, background_tasks: BackgroundTa
             status_code=400, detail=f"No topics found for chapter {request.chapter_id}"
         )
 
-    # Try to get a pre-generated card from cache
-    # For "Study More" (same topic), check topic-specific cache first
-    card = None
+    # Select topic (honor current_topic for "Study More", else random)
     if request.current_topic:
-        card = get_cached_card(request.chapter_id, request.scope, request.current_topic)
-
-    # Fall back to general cache for this chapter/scope
-    if card is None:
-        card = get_cached_card(request.chapter_id, request.scope, None)
-
-    if card:
-        # Got a cached card - trigger background generation to refill the general cache
-        # Always refill general cache (for "Got It" which picks random topics)
-        background_tasks.add_task(
-            trigger_background_generation,
-            request.chapter_id,
-            request.scope,
-            None  # General cache, not topic-specific
-        )
-        # Also refill topic-specific cache if this was a "Study More" request
-        if request.current_topic:
-            background_tasks.add_task(
-                trigger_background_generation,
-                request.chapter_id,
-                request.scope,
-                request.current_topic
-            )
-        return FlashcardResponse(
-            question=card.get("question", ""),
-            answer=card.get("answer", ""),
-            topic=card.get("topic", "Unknown"),
-            source=card.get("source", "rag"),
-        )
-
-    # No cached card available - generate synchronously (first request or cache miss)
-    card = _generate_card_sync(request.chapter_id, request.scope, request.current_topic)
-
-    if card is None:
-        # Fallback if generation failed
+        matching = [t for t in topics if t["section_name"] == request.current_topic]
+        selected_topic = matching[0] if matching else random.choice(topics)
+    else:
         selected_topic = random.choice(topics)
-        card = {
-            "question": f"What is a key concept in {selected_topic['section_name']}?",
-            "answer": "Please try again - there was an error generating this card.",
-            "topic": selected_topic["section_name"],
-            "source": "llm",
-        }
 
-    # Trigger background generation to fill cache for next time
-    background_tasks.add_task(
-        trigger_background_generation,
-        request.chapter_id,
-        request.scope,
-        None
-    )
+    topic_name = selected_topic["section_name"]
+    subtopics = selected_topic["subtopics"]
+
+    # Search for context
+    context = search_materials(topic_name, k=4)
+
+    # Generate card
+    card = generate_single_card(card_generator_llm, topic_name, subtopics, context)
+    if card is None:
+        raise HTTPException(status_code=500, detail="Failed to generate flashcard")
+
+    # Quality check
+    approved = check_cards_batch(quality_checker_llm, [card])
+    if approved:
+        card = approved[0]
 
     return FlashcardResponse(
         question=card.get("question", ""),
         answer=card.get("answer", ""),
-        topic=card.get("topic", "Unknown"),
-        source=card.get("source", "rag"),
+        topic=topic_name,
+        source="rag" if context else "llm",
     )
-
-
-@app.post("/api/prefetch")
-def prefetch_cards(request: FlashcardRequest, background_tasks: BackgroundTasks):
-    """Prefetch cards for a chapter/scope to warm the cache.
-
-    Call this when user selects a chapter to start studying.
-    Cards will be generated in the background and ready when needed.
-    """
-    if IS_VERCEL:
-        ensure_initialized()
-    elif not indexing_status["done"]:
-        return {"status": "indexing", "message": "Still indexing documents"}
-
-    # Trigger multiple background generations
-    for _ in range(CACHE_SIZE):
-        background_tasks.add_task(
-            trigger_background_generation,
-            request.chapter_id,
-            request.scope,
-            None
-        )
-
-    return {
-        "status": "prefetching",
-        "chapter_id": request.chapter_id,
-        "scope": request.scope,
-        "cards_requested": CACHE_SIZE,
-    }
 
 
 # Serve static files (local development only)

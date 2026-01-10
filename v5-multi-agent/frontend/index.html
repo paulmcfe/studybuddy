@@ -1259,29 +1259,9 @@
                 ? 'This chapter only'
                 : `Chapters 1-${state.selectedChapter.id}`;
 
-            // Prefetch cards in the background for faster subsequent loads
-            prefetchCards();
-
             // Fetch first card and focus on it
             fetchFlashcard();
             $('flashcard').focus();
-        }
-
-        async function prefetchCards() {
-            // Fire and forget - prefetch cards for this chapter/scope
-            try {
-                await fetch('/api/prefetch', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chapter_id: state.selectedChapter.id,
-                        scope: state.scope
-                    })
-                });
-            } catch (e) {
-                // Ignore prefetch errors - not critical
-                console.log('Prefetch:', e.message);
-            }
         }
 
         function changeChapter() {

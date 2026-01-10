@@ -324,45 +324,6 @@ def quality_checker_node(state: StudyBuddyState) -> dict:
     }
 ```
 
-## Background Card Generation Pipeline
-
-One powerful pattern is generating cards in the background while the tutoring conversation continues. After the Tutor explains something, kick off card generation and quality checking asynchronously:
-
-```python
-import asyncio
-
-async def background_card_pipeline(explanation: str, topic: str):
-    """Generate and validate cards in background."""
-
-    # Generate cards
-    cards = await card_generator.ainvoke({
-        "messages": [{
-            "role": "user",
-            "content": f"Create flashcards for: {topic}\n\n{explanation}"
-        }]
-    })
-
-    parsed_cards = parse_cards(cards["messages"][-1].content)
-
-    # Validate each card
-    approved = []
-    for card in parsed_cards:
-        evaluation = await quality_checker.ainvoke({
-            "messages": [{
-                "role": "user",
-                "content": f"Evaluate: {json.dumps(card)}"
-            }]
-        })
-
-        result = parse_evaluation(evaluation["messages"][-1].content)
-        if result["approved"]:
-            approved.append(card)
-
-    return approved
-```
-
-The student gets immediate responses from the Tutor while flashcards are being prepared behind the scenes. When cards are ready, they appear seamlessly.
-
 ## Error Recovery
 
 Multi-agent systems need robust error handling. What if the Card Generator produces invalid JSON? What if the Quality Checker rejects everything?
