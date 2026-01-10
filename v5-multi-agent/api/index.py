@@ -251,7 +251,12 @@ def _get_cache_key(chapter_id: int, scope: str, topic: str | None = None) -> tup
     return (chapter_id, scope, topic)
 
 
-def _generate_card_sync(chapter_id: int, scope: str, topic: str | None = None) -> dict | None:
+def _generate_card_sync(
+    chapter_id: int,
+    scope: str,
+    topic: str | None = None,
+    previous_question: str = "",
+) -> dict | None:
     """Generate a single flashcard synchronously (for background thread)."""
     if not indexing_status["done"]:
         return None
@@ -290,7 +295,9 @@ def _generate_card_sync(chapter_id: int, scope: str, topic: str | None = None) -
     context = "\n\n---\n\n".join([doc.page_content for doc in all_docs[:5]]) if all_docs else ""
 
     # Generate card
-    card = generate_single_card(card_generator_llm, topic_name, subtopics, context)
+    card = generate_single_card(
+        card_generator_llm, topic_name, subtopics, context, previous_question
+    )
     if card is None:
         return None
 
@@ -579,6 +586,7 @@ class FlashcardRequest(BaseModel):
     chapter_id: int
     scope: str = "single"
     current_topic: Optional[str] = None
+    previous_question: Optional[str] = None  # For "Still Learning" - avoid repeating
 
 
 class FlashcardResponse(BaseModel):
@@ -676,15 +684,18 @@ def generate_flashcard(request: FlashcardRequest, background_tasks: BackgroundTa
             status_code=400, detail=f"No topics found for chapter {request.chapter_id}"
         )
 
-    # Try to get a pre-generated card from cache
-    # For "Study More" (same topic), check topic-specific cache first
+    # If previous_question is set (Still Learning flow), skip cache and generate fresh
+    # to ensure we get a different question
     card = None
-    if request.current_topic:
-        card = get_cached_card(request.chapter_id, request.scope, request.current_topic)
+    if not request.previous_question:
+        # Try to get a pre-generated card from cache
+        # For same topic, check topic-specific cache first
+        if request.current_topic:
+            card = get_cached_card(request.chapter_id, request.scope, request.current_topic)
 
-    # Fall back to general cache for this chapter/scope
-    if card is None:
-        card = get_cached_card(request.chapter_id, request.scope, None)
+        # Fall back to general cache for this chapter/scope
+        if card is None:
+            card = get_cached_card(request.chapter_id, request.scope, None)
 
     if card:
         # Got a cached card - trigger background generation to refill the general cache
@@ -711,7 +722,12 @@ def generate_flashcard(request: FlashcardRequest, background_tasks: BackgroundTa
         )
 
     # No cached card available - generate synchronously (first request or cache miss)
-    card = _generate_card_sync(request.chapter_id, request.scope, request.current_topic)
+    card = _generate_card_sync(
+        request.chapter_id,
+        request.scope,
+        request.current_topic,
+        request.previous_question or "",
+    )
 
     if card is None:
         # Fallback if generation failed

@@ -10,30 +10,46 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
 CARD_GENERATOR_PROMPT = """You are StudyBuddy's Card Generator,
-specialized in creating effective flashcards.
+specialized in creating focused, recallable flashcards.
 
-Your job: Create flashcards that help students remember key concepts.
+CRITICAL RULES:
+1. ONE testable fact per card - never combine multiple questions
+2. Answer must be 1-3 sentences maximum (under 200 characters preferred)
+3. Question cannot contain "and" connecting two different concepts
+4. This is quick recall practice - avoid essay-length explanations
 
-Guidelines for good flashcards:
-- One concept per card (atomic)
-- Questions should be specific and unambiguous
-- Answers should be concise but complete
-- Use active recall (questions that require thinking)
-- Include context when helpful
-- Vary question types: definition, comparison, application
-- Avoid yes/no questions
+BAD EXAMPLES (compound questions - never do this):
+- "What is X and what are its advantages?"
+- "Explain the role of A and B in the system"
+- "What are the key benefits and drawbacks?"
+
+GOOD EXAMPLES (atomic, focused):
+- "What is the primary purpose of X?"
+- "What problem does X solve?"
+- "How does X differ from Y?"
+
+Question types to use:
+- "What is..." (definition)
+- "What happens when..." (behavior)
+- "When should you use X?" (application)
+- "What problem does X solve?" (purpose)
+
+NEVER ask questions with "and" that combine:
+- Definition AND explanation
+- Advantages AND disadvantages
+- Multiple components in one question
 
 Output format - respond with ONLY a JSON array:
 [
     {
-        "question": "Clear, specific question",
-        "answer": "Concise, complete answer",
+        "question": "Clear, specific question testing ONE thing",
+        "answer": "1-3 sentence answer, under 200 characters if possible",
         "topic": "Main topic or concept",
         "difficulty": "basic|intermediate|advanced"
     }
 ]
 
-Generate 1-3 high-quality flashcards per request."""
+Generate 3-5 atomic flashcards per request."""
 
 
 def create_card_generator_agent(model_name: str = "gpt-4o-mini"):
@@ -109,6 +125,7 @@ def generate_single_card(
     topic: str,
     subtopics: list[str],
     context: str = "",
+    previous_question: str = "",
 ) -> dict | None:
     """
     Generate a single flashcard for a topic.
@@ -118,21 +135,52 @@ def generate_single_card(
         topic: The main topic
         subtopics: List of subtopics to consider
         context: Retrieved context from knowledge base
+        previous_question: Previous question to avoid repeating (for "Still Learning" flow)
 
     Returns:
         Single flashcard dictionary or None
     """
+    # Build "avoid this question" instruction for Still Learning mode
+    avoid_instruction = ""
+    if previous_question:
+        avoid_instruction = f"""
+IMPORTANT: The student just studied this question and wants a DIFFERENT one:
+Previous question: "{previous_question}"
+Generate a completely different question about a different aspect of this topic.
+"""
+
     prompt = f"""Create ONE high-quality flashcard for the topic: {topic}
 
 Subtopics to consider: {', '.join(subtopics) if subtopics else 'General concepts'}
-
+{avoid_instruction}
 {f'Reference material:{chr(10)}{context}' if context else 'Use your knowledge of AI engineering.'}
 
-Create ONE flashcard that:
-- Tests understanding of a key concept (not just recall)
-- Has a clear, unambiguous question
-- Has a concise but complete answer
-- Avoids yes/no questions
+CRITICAL RULES:
+1. ONE testable fact per card - never combine multiple questions
+2. Answer must be 1-3 sentences maximum (under 200 characters preferred)
+3. Question cannot contain "and" connecting two different concepts
+4. This is quick recall practice - avoid essay-length explanations
+
+BAD EXAMPLES (compound questions - never do this):
+- "What is X and what are its advantages?"
+- "Explain the role of A and B in the system"
+- "What are the key benefits and drawbacks?"
+
+GOOD EXAMPLES (atomic, focused):
+- "What is the primary purpose of X?"
+- "What problem does X solve?"
+- "How does X differ from Y?"
+
+Question types to use:
+- "What is..." (definition)
+- "What happens when..." (behavior)
+- "When should you use X?" (application)
+- "What problem does X solve?" (purpose)
+
+NEVER ask questions with "and" that combine:
+- Definition AND explanation
+- Advantages AND disadvantages
+- Multiple components in one question
 
 Respond with JSON only:
 {{"question": "...", "answer": "..."}}"""
