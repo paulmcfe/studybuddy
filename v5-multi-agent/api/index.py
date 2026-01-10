@@ -329,14 +329,40 @@ def _background_generate(chapter_id: int, scope: str, topic: str | None = None):
                 del _generations_in_progress[cache_key]
 
 
-def get_cached_card(chapter_id: int, scope: str, topic: str | None = None) -> dict | None:
-    """Get a pre-generated card from cache, or None if cache is empty."""
+def get_cached_card(
+    chapter_id: int,
+    scope: str,
+    topic: str | None = None,
+    exclude_question: str | None = None,
+) -> dict | None:
+    """Get a pre-generated card from cache, or None if cache is empty.
+
+    Args:
+        chapter_id: The chapter ID
+        scope: The scope (single or cumulative)
+        topic: Optional topic to filter by
+        exclude_question: Optional question to exclude (for "Still Learning" flow)
+    """
     cache_key = _get_cache_key(chapter_id, scope, topic)
 
     with _cache_lock:
-        if cache_key in _card_cache and _card_cache[cache_key]:
+        if cache_key not in _card_cache or not _card_cache[cache_key]:
+            return None
+
+        # If no exclusion needed, just pop the first card
+        if not exclude_question:
             return _card_cache[cache_key].popleft()
-    return None
+
+        # Try to find a card with a different question
+        cache = _card_cache[cache_key]
+        for i, card in enumerate(cache):
+            if card.get("question") != exclude_question:
+                # Found a different card - remove and return it
+                del cache[i]
+                return card
+
+        # All cached cards have the same question - return None to force fresh generation
+        return None
 
 
 def trigger_background_generation(chapter_id: int, scope: str, topic: str | None = None):
@@ -684,18 +710,20 @@ def generate_flashcard(request: FlashcardRequest, background_tasks: BackgroundTa
             status_code=400, detail=f"No topics found for chapter {request.chapter_id}"
         )
 
-    # If previous_question is set (Still Learning flow), skip cache and generate fresh
-    # to ensure we get a different question
+    # Try to get a pre-generated card from cache
+    # For "Still Learning" flow, exclude the previous question so we get a different card
     card = None
-    if not request.previous_question:
-        # Try to get a pre-generated card from cache
-        # For same topic, check topic-specific cache first
-        if request.current_topic:
-            card = get_cached_card(request.chapter_id, request.scope, request.current_topic)
+    exclude_q = request.previous_question
 
-        # Fall back to general cache for this chapter/scope
-        if card is None:
-            card = get_cached_card(request.chapter_id, request.scope, None)
+    # For same topic, check topic-specific cache first
+    if request.current_topic:
+        card = get_cached_card(
+            request.chapter_id, request.scope, request.current_topic, exclude_q
+        )
+
+    # Fall back to general cache for this chapter/scope
+    if card is None:
+        card = get_cached_card(request.chapter_id, request.scope, None, exclude_q)
 
     if card:
         # Got a cached card - trigger background generation to refill the general cache
