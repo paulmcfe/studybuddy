@@ -1008,7 +1008,7 @@
             }
         }
 
-        async function fetchFlashcard(currentTopic = null) {
+        async function fetchFlashcard(currentTopic = null, previousQuestion = null) {
             if (!state.selectedChapter) return;
 
             state.isLoading = true;
@@ -1021,6 +1021,9 @@
                 };
                 if (currentTopic) {
                     body.current_topic = currentTopic;
+                }
+                if (previousQuestion) {
+                    body.previous_question = previousQuestion;
                 }
 
                 const response = await fetch('/api/flashcard', {
@@ -1296,7 +1299,8 @@
 
         function studyMore() {
             state.isFlipped = false;
-            fetchFlashcard(state.currentCard?.topic); // Same topic
+            // Pass both the topic and the previous question to get a different card
+            fetchFlashcard(state.currentCard?.topic, state.currentCard?.question);
             $('flashcard').focus();
         }
 

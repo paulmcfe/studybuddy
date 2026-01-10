@@ -2,17 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "v5-multi-agent/api/index.py",
+      "src": "v4-agentic-rag/api/index.py",
       "use": "@vercel/python"
     },
     {
-      "src": "v5-multi-agent/frontend/**",
+      "src": "v4-agentic-rag/frontend/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/v5-multi-agent/api/index.py" },
-    { "src": "/(.*)", "dest": "/v5-multi-agent/frontend/$1" }
+    { "src": "/api/(.*)", "dest": "/v4-agentic-rag/api/index.py" },
+    { "src": "/(.*)", "dest": "/v4-agentic-rag/frontend/$1" }
   ],
   "git": {
     "deploymentEnabled": {

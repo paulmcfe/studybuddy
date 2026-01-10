@@ -563,6 +563,7 @@ class FlashcardRequest(BaseModel):
     chapter_id: int
     scope: str = "single"  # "single" or "cumulative"
     current_topic: Optional[str] = None
+    previous_question: Optional[str] = None  # For "Study More" - avoid repeating
 
 
 class FlashcardResponse(BaseModel):
@@ -648,19 +649,49 @@ def generate_flashcard(request: FlashcardRequest):
     else:
         context = ""
 
+    # Build "avoid this question" instruction for Study More mode
+    avoid_instruction = ""
+    if request.previous_question:
+        avoid_instruction = f"""
+IMPORTANT: The student just studied this question and wants a DIFFERENT one:
+Previous question: "{request.previous_question}"
+Generate a completely different question about a different aspect of this topic.
+"""
+
     # Generate flashcard
     flashcard_prompt = f"""You are creating a study flashcard for the topic: {topic_name}
 
 Subtopics to consider: {', '.join(subtopics) if subtopics else 'General concepts'}
-
+{avoid_instruction}
 Reference material:
 {context if context else 'No specific reference material available - use your knowledge of AI engineering.'}
 
-Create ONE high-quality flashcard that:
-- Tests understanding of a key concept (not just recall)
-- Has a clear, unambiguous question
-- Has a concise but complete answer
-- Avoids yes/no questions
+CRITICAL RULES:
+1. ONE testable fact per card - never combine multiple questions
+2. Answer must be 1-3 sentences maximum (under 200 characters preferred)
+3. Question cannot contain "and" connecting two different concepts
+4. This is quick recall practice - avoid essay-length explanations
+
+BAD EXAMPLES (compound questions - never do this):
+- "What is X and what are its advantages?"
+- "Explain the role of A and B in the system"
+- "What are the key benefits and drawbacks?"
+
+GOOD EXAMPLES (atomic, focused):
+- "What is the primary purpose of X?"
+- "What problem does X solve?"
+- "How does X differ from Y?"
+
+Question types to use:
+- "What is..." (definition)
+- "What happens when..." (behavior)
+- "When should you use X?" (application)
+- "What problem does X solve?" (purpose)
+
+NEVER ask questions with "and" that combine:
+- Definition AND explanation
+- Advantages AND disadvantages
+- Multiple components in one question
 
 Respond with JSON only:
 {{"question": "...", "answer": "..."}}"""
