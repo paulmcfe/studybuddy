@@ -732,6 +732,8 @@
             .main-content {
                 height: 100%;
                 max-height: 100%;
+                min-height: 0;
+                overflow: hidden;
             }
 
             .sidebar {
@@ -749,10 +751,6 @@
             }
 
             .home-screen {
-                display: none;
-            }
-
-            .header {
                 display: none;
             }
 
@@ -1000,7 +998,7 @@
             <!-- Mobile Header (visible < 640px) -->
             <header class="header" id="mobileHeader">
                 <div class="header-content">
-                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy v6.15</h1>
+                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy v6.16</h1>
                     <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
                         <span class="icon-moon">🌙</span>
                         <span class="icon-sun">☀️</span>
