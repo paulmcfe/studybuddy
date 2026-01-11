@@ -915,7 +915,9 @@
             font-size: 0.8125rem;
             color: var(--color-text-muted);
             text-align: center;
-            min-height: 40px;
+            height: 40px;
+            flex-shrink: 0;
+            overflow: hidden;
         }
 
         .status-bar {
@@ -1001,7 +1003,7 @@
             <!-- Mobile Header (visible < 640px) -->
             <header class="header" id="mobileHeader">
                 <div class="header-content">
-                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy v6.18</h1>
+                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy v6.19</h1>
                     <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
                         <span class="icon-moon">🌙</span>
                         <span class="icon-sun">☀️</span>
