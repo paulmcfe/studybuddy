@@ -14,37 +14,52 @@ TURSO_URL = os.environ.get("TURSO_DATABASE_URL")
 TURSO_TOKEN = os.environ.get("TURSO_AUTH_TOKEN")
 
 # Database configuration priority:
-# 1. Turso (if credentials provided) - works everywhere
+# 1. Turso (if credentials provided and libsql available)
 # 2. Local SQLite file (for development)
 # 3. In-memory SQLite (Vercel fallback without Turso)
 
+engine = None
+DB_PATH = None
+
 if TURSO_URL and TURSO_TOKEN:
-    # Turso: use libSQL with remote database
-    DATABASE_URL = f"sqlite+libsql://{TURSO_URL}?secure=true"
-    engine = create_engine(
-        DATABASE_URL,
-        connect_args={"auth_token": TURSO_TOKEN},
-        echo=False,
-    )
-    DB_PATH = "turso"
-elif IS_VERCEL:
-    # Vercel without Turso: in-memory (limited - data won't persist)
-    DATABASE_URL = "sqlite:///:memory:"
-    engine = create_engine(
-        DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        echo=False,
-    )
-    DB_PATH = ":memory:"
-else:
-    # Local development: SQLite file
-    DB_PATH = Path(__file__).parent.parent.parent / "studybuddy.db"
-    DATABASE_URL = f"sqlite:///{DB_PATH}"
-    engine = create_engine(
-        DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        echo=False,
-    )
+    # Try Turso with libSQL
+    try:
+        # Import triggers dialect registration
+        import sqlalchemy_libsql  # noqa: F401
+
+        DATABASE_URL = f"sqlite+libsql://{TURSO_URL}?secure=true"
+        engine = create_engine(
+            DATABASE_URL,
+            connect_args={"auth_token": TURSO_TOKEN},
+            echo=False,
+        )
+        DB_PATH = "turso"
+        print("Using Turso database")
+    except ImportError as e:
+        print(f"Turso credentials found but libsql not available: {e}")
+        # Fall through to next option
+
+if engine is None:
+    if IS_VERCEL:
+        # Vercel without Turso: in-memory (limited - data won't persist)
+        DATABASE_URL = "sqlite:///:memory:"
+        engine = create_engine(
+            DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            echo=False,
+        )
+        DB_PATH = ":memory:"
+        print("Using in-memory SQLite (Vercel fallback)")
+    else:
+        # Local development: SQLite file
+        DB_PATH = Path(__file__).parent.parent.parent / "studybuddy.db"
+        DATABASE_URL = f"sqlite:///{DB_PATH}"
+        engine = create_engine(
+            DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            echo=False,
+        )
+        print(f"Using local SQLite: {DB_PATH}")
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
