@@ -545,11 +545,12 @@
         /* Mobile: slide up from bottom */
         @media (max-width: 639px) {
             .chat-panel {
-                top: 10vh; /* Fallback */
-                top: 10dvh; /* Dynamic - adjusts for mobile keyboard */
+                top: auto;
                 bottom: 0;
                 left: 0;
                 right: 0;
+                height: var(--chat-panel-height, 90vh);
+                max-height: var(--chat-panel-height, 90vh);
                 border-radius: var(--radius-lg) var(--radius-lg) 0 0;
                 transform: translateY(100%);
             }
@@ -1646,6 +1647,19 @@
             if (state.previousFocus) {
                 state.previousFocus.focus();
             }
+        }
+
+        // Handle mobile keyboard appearance using Visual Viewport API
+        function updateChatPanelHeight() {
+            if (window.visualViewport) {
+                const height = window.visualViewport.height;
+                document.documentElement.style.setProperty('--chat-panel-height', `${height * 0.9}px`);
+            }
+        }
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateChatPanelHeight);
+            updateChatPanelHeight(); // Set initial value
         }
 
         function sendChatMessage() {
