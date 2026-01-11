@@ -74,8 +74,11 @@
             box-sizing: border-box;
         }
 
-        html {
+        html,
+        body {
             overflow-x: hidden;
+            width: 100%;
+            max-width: 100%;
         }
 
         body {
@@ -83,9 +86,8 @@
             background: var(--color-bg);
             color: var(--color-text);
             min-height: 100vh;
-            overflow-x: hidden;
-            width: 100%;
-            max-width: 100vw;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
         }
 
         /* ============== App Container ============== */
@@ -387,6 +389,8 @@
             overflow-y: auto;
             max-height: 100%;
             padding-right: 8px;
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
 
         .card-answer {
@@ -397,6 +401,8 @@
             overflow-y: auto;
             max-height: 100%;
             padding-right: 8px;
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
 
         .card-hint {
@@ -631,6 +637,8 @@
             border-radius: 12px;
             font-size: 0.875rem;
             line-height: 1.5;
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
 
         .chat-message.assistant {
@@ -994,7 +1002,7 @@
             <!-- Mobile Header (visible < 640px) -->
             <header class="header" id="mobileHeader">
                 <div class="header-content">
-                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy v6.06</h1>
+                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy v6.07</h1>
                     <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
                         <span class="icon-moon">🌙</span>
                         <span class="icon-sun">☀️</span>
