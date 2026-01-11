@@ -585,7 +585,9 @@ class PrefetchStatusResponse(BaseModel):
 
 @app.get("/api/status")
 def get_status():
-    """Check indexing status."""
+    """Check indexing status. On Vercel, triggers initialization."""
+    if IS_VERCEL:
+        ensure_initialized()
     return {
         "indexing_complete": indexing_status["done"],
         "documents_indexed": indexing_status["count"],
