@@ -693,19 +693,20 @@ def generate_flashcard(request: FlashcardRequest):
                         c for c in cached_cards
                         if c.question != request.previous_question
                     ]
-                    # Fall back to all cards if we filtered everything out
+                    # If no other cards available, skip cache and generate new via LLM
                     if not available_cards:
-                        available_cards = list(cached_cards)
+                        cached_cards = None  # Force LLM generation below
 
-                # Return a random cached card
-                selected_card = random.choice(available_cards)
-                return FlashcardResponse(
-                    question=selected_card.question,
-                    answer=selected_card.answer,
-                    topic=topic_name,
-                    source="cache",
-                    flashcard_id=selected_card.id,
-                )
+                if cached_cards and available_cards:
+                    # Return a random cached card
+                    selected_card = random.choice(available_cards)
+                    return FlashcardResponse(
+                        question=selected_card.question,
+                        answer=selected_card.answer,
+                        topic=topic_name,
+                        source="cache",
+                        flashcard_id=selected_card.id,
+                    )
     except Exception as e:
         # Log cache lookup error but continue to LLM generation
         print(f"Cache lookup error: {e}")
