@@ -1,5 +1,6 @@
 """Database connection and session management."""
 
+import os
 from pathlib import Path
 from contextlib import contextmanager
 from sqlalchemy import create_engine
@@ -7,9 +8,16 @@ from sqlalchemy.orm import sessionmaker
 
 from .models import Base, User
 
-# Database file location (same directory as the v6 package root)
-DB_PATH = Path(__file__).parent.parent.parent / "studybuddy.db"
-DATABASE_URL = f"sqlite:///{DB_PATH}"
+# On Vercel, use in-memory SQLite (filesystem is read-only)
+# Locally, use a file for persistence
+IS_VERCEL = os.environ.get("VERCEL") == "1"
+
+if IS_VERCEL:
+    DATABASE_URL = "sqlite:///:memory:"
+    DB_PATH = ":memory:"
+else:
+    DB_PATH = Path(__file__).parent.parent.parent / "studybuddy.db"
+    DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 # Create engine with SQLite-specific settings
 engine = create_engine(

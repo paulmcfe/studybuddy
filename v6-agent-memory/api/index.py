@@ -721,12 +721,29 @@ def generate_flashcard(request: FlashcardRequest):
     if approved:
         card = approved[0]
 
+    # Save to database so we have an ID for spaced repetition tracking
+    from .services.flashcard_cache import cache_flashcards
+
+    try:
+        with get_db() as db:
+            saved_cards = cache_flashcards(
+                topic=topic_name,
+                source_context=context,
+                cards_data=[card],
+                db=db,
+                chapter_id=request.chapter_id,
+            )
+            flashcard_id = saved_cards[0].id if saved_cards else None
+    except Exception as e:
+        print(f"Failed to cache generated card: {e}")
+        flashcard_id = None
+
     return FlashcardResponse(
         question=card.get("question", ""),
         answer=card.get("answer", ""),
         topic=topic_name,
         source="rag" if context else "llm",
-        flashcard_id=card.get("id"),
+        flashcard_id=flashcard_id,
     )
 
 
