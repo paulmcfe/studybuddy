@@ -87,33 +87,26 @@ def calculate_sm2(
     )
 
 
-def quality_from_response(knew_it: bool, difficulty: str = "normal") -> int:
-    """Convert simple user feedback to SM-2 quality rating.
+def quality_from_button(button: str) -> int:
+    """Convert button choice to SM-2 quality rating.
 
-    Simplifies the 0-5 scale for better UX. Users just say
-    "Got It" or "Still Learning" and optionally indicate difficulty.
+    Three-button UI maps to SM-2 quality ratings:
+    - "no": Failed recall, reset interval
+    - "took_a_sec": Correct but struggled
+    - "yes": Solid recall
 
     Args:
-        knew_it: True if user clicked "Got It" / knew the answer
-        difficulty: "easy", "normal", or "hard"
+        button: "no", "took_a_sec", or "yes"
 
     Returns:
-        SM-2 quality rating (0-5)
+        SM-2 quality rating (1, 3, or 4)
     """
-    if knew_it:
-        # User got it right
-        if difficulty == "easy":
-            return 5  # Perfect, instant recall
-        elif difficulty == "hard":
-            return 3  # Correct but struggled
-        else:
-            return 4  # Normal correct response
-    else:
-        # User didn't know it
-        if difficulty == "hard":
-            return 1  # Didn't know, seemed hard
-        else:
-            return 2  # Didn't know, but seemed learnable
+    mapping = {
+        "no": 1,  # Failed recall, reset interval
+        "took_a_sec": 3,  # Correct but struggled
+        "yes": 4,  # Solid recall
+    }
+    return mapping.get(button, 3)  # Default to 3 if unknown
 
 
 def get_priority_score(

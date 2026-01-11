@@ -67,6 +67,7 @@ from .services.flashcard_cache import (
     get_or_generate_flashcards,
     get_cache_stats,
 )
+from .services.spaced_repetition import quality_from_button
 from .services.memory_store import MemoryStore
 from .services.background_generator import BackgroundGenerator, prefetch_status
 
@@ -530,7 +531,7 @@ class FlashcardResponse(BaseModel):
 
 class ReviewRequest(BaseModel):
     flashcard_id: str
-    quality: int  # 0-5 SM-2 rating
+    button: str  # "no", "took_a_sec", or "yes"
     response_time_ms: Optional[int] = None
 
 
@@ -751,11 +752,14 @@ def record_review_endpoint(
     db: Session = Depends(get_db_dependency),
 ):
     """Record a flashcard review result."""
+    # Convert button choice to SM-2 quality rating
+    quality = quality_from_button(request.button)
+
     result = record_review(
         db=db,
         user_id="default",
         flashcard_id=request.flashcard_id,
-        quality=request.quality,
+        quality=quality,
         response_time_ms=request.response_time_ms,
     )
 

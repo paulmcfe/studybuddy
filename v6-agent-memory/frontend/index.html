@@ -419,10 +419,19 @@
             font-size: 0.875rem;
         }
 
+        /* ============== Review Prompt ============== */
+        .review-prompt {
+            text-align: center;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            color: var(--color-text-muted);
+            padding: 12px 20px 8px 20px;
+        }
+
         /* ============== Action Buttons ============== */
         .action-buttons {
             display: flex;
-            gap: 12px;
+            gap: 10px;
             padding: 0 20px 16px 20px;
             max-width: 500px;
             margin: 0 auto;
@@ -431,13 +440,14 @@
 
         .action-btn {
             flex: 1;
-            padding: 16px;
+            padding: 14px 8px;
             border: none;
             border-radius: var(--radius-md);
-            font-size: 0.9375rem;
+            font-size: 0.875rem;
             font-weight: 500;
             cursor: pointer;
             transition: transform 0.1s, opacity 0.2s;
+            line-height: 1.3;
         }
 
         .action-btn:active {
@@ -449,14 +459,35 @@
             cursor: not-allowed;
         }
 
-        .btn-gotit {
-            background: var(--color-primary);
-            color: hsl(0 0% 100%);
+        .btn-no {
+            background: hsl(0 70% 92%);
+            color: hsl(0 70% 35%);
         }
 
-        .btn-studymore {
-            background: var(--color-secondary);
-            color: hsl(0 0% 15%);
+        .btn-took-a-sec {
+            background: hsl(45 80% 90%);
+            color: hsl(45 80% 25%);
+        }
+
+        .btn-yes {
+            background: hsl(142 60% 88%);
+            color: hsl(142 60% 25%);
+        }
+
+        /* Dark mode button colors */
+        [data-theme="dark"] .btn-no {
+            background: hsl(0 50% 25%);
+            color: hsl(0 70% 80%);
+        }
+
+        [data-theme="dark"] .btn-took-a-sec {
+            background: hsl(45 50% 25%);
+            color: hsl(45 70% 80%);
+        }
+
+        [data-theme="dark"] .btn-yes {
+            background: hsl(142 40% 25%);
+            color: hsl(142 60% 80%);
         }
 
         .study-chat-link {
@@ -847,6 +878,32 @@
 
         }
 
+        /* ============== Status Bar ============== */
+        .status-bar,
+        .sidebar-status,
+        .home-status {
+            padding: 12px 16px;
+            font-size: 0.8125rem;
+            color: var(--color-text-muted);
+            text-align: center;
+            min-height: 40px;
+        }
+
+        .status-bar {
+            background: var(--color-bg-secondary);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .sidebar-status {
+            margin-top: auto;
+            padding-top: 12px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .home-status {
+            margin-top: 16px;
+        }
+
         /* ============== Utility Classes ============== */
         .hidden {
             display: none !important;
@@ -893,6 +950,10 @@
                 <button type="button" class="start-btn" id="sidebarStartBtn" onclick="startStudying()">Start
                     Studying</button>
                 <button type="button" class="chat-link" onclick="openChat()">💬 Just want to chat?</button>
+
+                <div class="sidebar-status" id="sidebarSetupStatus" aria-live="polite">
+                    <span id="sidebarSetupStatusMessage"></span>
+                </div>
             </div>
 
             <!-- Study Status (shown while studying) -->
@@ -909,7 +970,10 @@
                 </div>
 
                 <button type="button" class="change-chapter-link" onclick="changeChapter()">← Change Chapter</button>
-                <button type="button" class="chat-link" onclick="openChat()">💬 Ask StudyBuddy</button>
+
+                <div class="sidebar-status" id="sidebarStatus" aria-live="polite">
+                    <span id="sidebarStatusMessage"></span>
+                </div>
             </div>
         </aside>
 
@@ -949,6 +1013,10 @@
 
                 <button type="button" class="start-btn" id="startBtn" onclick="startStudying()">Start Studying</button>
                 <button type="button" class="chat-link" onclick="openChat()">💬 Just want to chat?</button>
+
+                <div class="home-status" id="homeStatus" aria-live="polite">
+                    <span id="homeStatusMessage"></span>
+                </div>
             </section>
 
             <!-- Study Screen -->
@@ -974,15 +1042,22 @@
                     </div>
                 </div>
 
-                <nav class="action-buttons" id="actionButtons" aria-label="Flashcard actions">
-                    <button type="button" class="action-btn btn-gotit" onclick="gotIt()" id="gotItBtn"
-                        aria-label="Knew It, next card">✓ Knew It</button>
-                    <button type="button" class="action-btn btn-studymore" onclick="studyMore()" id="studyMoreBtn"
-                        aria-label="Still learning this topic">↻ Still Learning</button>
+                <div class="review-prompt" id="reviewPrompt">Did you remember this?</div>
+                <nav class="action-buttons" id="actionButtons" aria-label="Flashcard review">
+                    <button type="button" class="action-btn btn-no" onclick="recordReview('no')" id="btnNo"
+                        aria-label="No, didn't remember">No</button>
+                    <button type="button" class="action-btn btn-took-a-sec" onclick="recordReview('took_a_sec')" id="btnTookASec"
+                        aria-label="Took a moment to remember">Took a sec</button>
+                    <button type="button" class="action-btn btn-yes" onclick="recordReview('yes')" id="btnYes"
+                        aria-label="Yes, remembered it">Yes</button>
                 </nav>
 
                 <button type="button" class="change-chapter-link" onclick="changeChapter()">← Change chapter</button>
                 <button type="button" class="study-chat-link" onclick="openChat()">💬 Ask StudyBuddy</button>
+
+                <div class="status-bar" id="statusBar" aria-live="polite">
+                    <span id="statusMessage"></span>
+                </div>
             </section>
         </main>
     </div>
@@ -1038,11 +1113,40 @@
             chatMessages: [],
             currentScreen: 'home',
             previousFocus: null,
-            prefetchStatus: {}  // { chapter_id: { state, progress, cards } }
+            prefetchStatus: {},  // { chapter_id: { state, progress, cards } }
+            indexingComplete: false
         };
 
         // ============== DOM Elements ==============
         const $ = id => document.getElementById(id);
+
+        // ============== Status Bar ==============
+        let statusTimeout = null;
+
+        function showStatus(message, duration = 3000) {
+            // Clear any existing timeout
+            if (statusTimeout) {
+                clearTimeout(statusTimeout);
+                statusTimeout = null;
+            }
+
+            // Update all status bars (home, study, sidebar setup, sidebar study)
+            $('homeStatusMessage').textContent = message;
+            $('statusMessage').textContent = message;
+            $('sidebarSetupStatusMessage').textContent = message;
+            $('sidebarStatusMessage').textContent = message;
+
+            // Auto-clear after duration (0 = persistent)
+            if (duration > 0) {
+                statusTimeout = setTimeout(() => {
+                    $('homeStatusMessage').textContent = '';
+                    $('statusMessage').textContent = '';
+                    $('sidebarSetupStatusMessage').textContent = '';
+                    $('sidebarStatusMessage').textContent = '';
+                    statusTimeout = null;
+                }, duration);
+            }
+        }
 
         // ============== Accessibility Helpers ==============
         function announceToScreenReader(message) {
@@ -1085,6 +1189,42 @@
                     flipCard();
                 }
             });
+            // Check indexing status
+            checkIndexingStatus();
+        }
+
+        async function checkIndexingStatus() {
+            try {
+                const response = await fetch('/api/status');
+                if (response.ok) {
+                    const status = await response.json();
+                    state.indexingComplete = status.indexing_complete;
+                    updateStartButtons();
+
+                    if (!status.indexing_complete) {
+                        // Show indexing progress in status bar
+                        showStatus(`Indexing: ${status.chunks_in_db} chunks...`, 0);
+                        // Poll again in 1 second
+                        setTimeout(checkIndexingStatus, 1000);
+                    } else {
+                        showStatus('Ready to study!');
+                    }
+                }
+            } catch (error) {
+                console.log('Status check failed:', error.message);
+                // Retry in 2 seconds
+                setTimeout(checkIndexingStatus, 2000);
+            }
+        }
+
+        function updateStartButtons() {
+            const disabled = !state.indexingComplete;
+            const label = disabled ? 'Indexing...' : 'Start Studying';
+
+            $('startBtn').disabled = disabled;
+            $('startBtn').textContent = label;
+            $('sidebarStartBtn').disabled = disabled;
+            $('sidebarStartBtn').textContent = label;
         }
 
         // ============== API Calls ==============
@@ -1131,13 +1271,13 @@
                     const status = await response.json();
                     state.prefetchStatus[chapterId] = status;
 
-                    // Log progress
                     if (status.state === 'in_progress') {
-                        console.log(`Prefetch ch${chapterId}: ${status.completed_topics}/${status.total_topics} topics (${status.cards_generated} cards)`);
+                        // Show progress in status bar (persistent until done)
+                        showStatus(`Caching cards: ${status.completed_topics}/${status.total_topics} topics...`, 0);
                         // Continue polling every 2 seconds
                         setTimeout(() => pollPrefetchStatus(chapterId), 2000);
                     } else if (status.state === 'completed') {
-                        console.log(`Prefetch completed for chapter ${chapterId}: ${status.cards_generated} cards cached`);
+                        showStatus(`${status.cards_generated} cards cached`);
                     }
                 }
             } catch (error) {
@@ -1183,7 +1323,7 @@
                 state.isLoading = false;
                 state.currentCard = {
                     question: 'Error loading flashcard. Please try again.',
-                    answer: 'Click "Got it" to try another card.',
+                    answer: 'Click any button to try another card.',
                     topic: 'Error',
                     source: 'error'
                 };
@@ -1271,8 +1411,9 @@
             const cardTopic = $('cardTopic');
             const cardTopicBack = $('cardTopicBack');
             const cardSource = $('cardSource');
-            const gotItBtn = $('gotItBtn');
-            const studyMoreBtn = $('studyMoreBtn');
+            const btnNo = $('btnNo');
+            const btnTookASec = $('btnTookASec');
+            const btnYes = $('btnYes');
 
             if (state.isLoading) {
                 flashcard.classList.add('loading');
@@ -1283,15 +1424,17 @@
                 `;
                 cardQuestion.setAttribute('aria-busy', 'true');
                 cardTopic.textContent = '-';
-                gotItBtn.disabled = true;
-                studyMoreBtn.disabled = true;
+                btnNo.disabled = true;
+                btnTookASec.disabled = true;
+                btnYes.disabled = true;
                 return;
             }
 
             flashcard.classList.remove('loading');
             cardQuestion.setAttribute('aria-busy', 'false');
-            gotItBtn.disabled = false;
-            studyMoreBtn.disabled = false;
+            btnNo.disabled = false;
+            btnTookASec.disabled = false;
+            btnYes.disabled = false;
 
             if (state.currentCard) {
                 cardQuestion.textContent = state.currentCard.question;
@@ -1436,16 +1579,40 @@
             announceToScreenReader(message);
         }
 
-        function gotIt() {
-            state.isFlipped = false;
-            fetchFlashcard(); // New topic
-            $('flashcard').focus();
-        }
+        async function recordReview(button) {
+            // Record the review if we have a card with an ID
+            if (state.currentCard?.flashcard_id) {
+                try {
+                    const res = await fetch('/api/review', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            flashcard_id: state.currentCard.flashcard_id,
+                            button: button
+                        })
+                    });
 
-        function studyMore() {
+                    if (res.ok) {
+                        const result = await res.json();
+                        const days = result.interval_days;
+                        const msg = days === 1
+                            ? "You'll see this card again in 1 day"
+                            : `You'll see this card again in ${days} days`;
+                        showStatus(msg);
+                    }
+                } catch (e) {
+                    console.error('Failed to record review:', e);
+                }
+            }
+
+            // Fetch next card
             state.isFlipped = false;
-            // Pass both the topic and the previous question to get a different card
-            fetchFlashcard(state.currentCard?.topic, state.currentCard?.question);
+            if (button === 'no') {
+                // Same topic for failed cards
+                fetchFlashcard(state.currentCard?.topic, state.currentCard?.question);
+            } else {
+                fetchFlashcard(); // New topic
+            }
             $('flashcard').focus();
         }
 
