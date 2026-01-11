@@ -918,7 +918,7 @@
             <!-- Mobile Header (visible < 640px) -->
             <header class="header" id="mobileHeader">
                 <div class="header-content">
-                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy</h1>
+                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy v6</h1>
                     <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
                         <span class="icon-moon">🌙</span>
                         <span class="icon-sun">☀️</span>
@@ -1037,7 +1037,8 @@
             chatOpen: false,
             chatMessages: [],
             currentScreen: 'home',
-            previousFocus: null
+            previousFocus: null,
+            prefetchStatus: {}  // { chapter_id: { state, progress, cards } }
         };
 
         // ============== DOM Elements ==============
@@ -1097,6 +1098,50 @@
                 console.error('Failed to load chapters:', error);
                 $('chapterSelect').innerHTML = '<option value="">Error loading chapters</option>';
                 $('sidebarChapterSelect').innerHTML = '<option value="">Error loading chapters</option>';
+            }
+        }
+
+        // ============== Background Prefetch ==============
+        async function triggerPrefetch(chapterId) {
+            try {
+                const response = await fetch('/api/prefetch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chapter_id: chapterId })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log(`Prefetch ${data.state} for chapter ${chapterId}: ${data.message}`);
+                    // Start polling for status if generation started
+                    if (data.state === 'started' || data.state === 'already_in_progress') {
+                        pollPrefetchStatus(chapterId);
+                    }
+                }
+            } catch (error) {
+                // Silently fail - prefetch is an optimization, not critical
+                console.log('Prefetch request failed (non-critical):', error.message);
+            }
+        }
+
+        async function pollPrefetchStatus(chapterId) {
+            try {
+                const response = await fetch(`/api/prefetch-status/${chapterId}`);
+                if (response.ok) {
+                    const status = await response.json();
+                    state.prefetchStatus[chapterId] = status;
+
+                    // Log progress
+                    if (status.state === 'in_progress') {
+                        console.log(`Prefetch ch${chapterId}: ${status.completed_topics}/${status.total_topics} topics (${status.cards_generated} cards)`);
+                        // Continue polling every 2 seconds
+                        setTimeout(() => pollPrefetchStatus(chapterId), 2000);
+                    } else if (status.state === 'completed') {
+                        console.log(`Prefetch completed for chapter ${chapterId}: ${status.cards_generated} cards cached`);
+                    }
+                }
+            } catch (error) {
+                console.log('Prefetch status poll failed:', error.message);
             }
         }
 
@@ -1213,6 +1258,9 @@
                 $('sidebarChapterSelect').value = firstChapter.id;
                 state.selectedChapter = firstChapter;
                 updateCumulativeLabels();
+
+                // Trigger prefetch for Chapter 1 on initial load
+                triggerPrefetch(firstChapter.id);
             }
         }
 
@@ -1331,6 +1379,11 @@
             // Sync both dropdowns
             $('chapterSelect').value = selectElement.value;
             $('sidebarChapterSelect').value = selectElement.value;
+
+            // Trigger background prefetch for selected chapter
+            if (chapterId) {
+                triggerPrefetch(chapterId);
+            }
         }
 
         function startStudying() {

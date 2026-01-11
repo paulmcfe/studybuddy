@@ -7,6 +7,7 @@ from .flashcard_cache import (
     cache_flashcards,
 )
 from .memory_store import MemoryStore
+from .background_generator import BackgroundGenerator, prefetch_status
 
 __all__ = [
     "calculate_sm2",
@@ -15,4 +16,6 @@ __all__ = [
     "get_cached_flashcards",
     "cache_flashcards",
     "MemoryStore",
+    "BackgroundGenerator",
+    "prefetch_status",
 ]

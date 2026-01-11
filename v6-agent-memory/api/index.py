@@ -68,6 +68,7 @@ from .services.flashcard_cache import (
     get_cache_stats,
 )
 from .services.memory_store import MemoryStore
+from .services.background_generator import BackgroundGenerator, prefetch_status
 
 # Load environment variables from parent directory
 env_path = Path(__file__).parent.parent / ".env"
@@ -238,7 +239,6 @@ quality_checker_llm = create_quality_checker_agent("gpt-5-nano")
 supervisor_llm = create_supervisor_agent("gpt-5-nano")
 scheduler_llm = create_scheduler_agent("gpt-5-nano")
 
-
 def search_materials(query: str, k: int = 4) -> str:
     """Search the knowledge base for relevant content."""
     results = vector_store.similarity_search(query, k=k)
@@ -252,6 +252,14 @@ def search_materials(query: str, k: int = 4) -> str:
         formatted.append(f"[{source}]:\n{doc.page_content}")
 
     return "\n\n---\n\n".join(formatted)
+
+
+# Initialize background generator now that search_materials is defined
+background_generator = BackgroundGenerator(
+    card_generator_llm=card_generator_llm,
+    search_func=search_materials,
+    get_topics_func=get_topics_for_scope,
+)
 
 
 # ============== LangGraph Node Implementations ==============
@@ -467,6 +475,9 @@ async def lifespan(app: FastAPI):
         # Local: use background thread for faster startup
         def init():
             ensure_initialized()
+            # After indexing completes, start prefetching Chapter 1
+            print("Starting background prefetch for Chapter 1...")
+            background_generator.start_prefetch(1)
 
         thread = threading.Thread(target=init, daemon=True)
         thread.start()
@@ -545,6 +556,27 @@ class StatsResponse(BaseModel):
     topic_performance: dict
     struggle_areas: list[str]
     unique_cards_studied: int
+
+
+class PrefetchRequest(BaseModel):
+    chapter_id: int
+
+
+class PrefetchResponse(BaseModel):
+    chapter_id: int
+    state: str  # "started", "already_in_progress", "already_completed", "no_topics"
+    total_topics: int
+    message: str
+
+
+class PrefetchStatusResponse(BaseModel):
+    chapter_id: int
+    state: str  # "idle", "in_progress", "completed", "error"
+    total_topics: int
+    completed_topics: int
+    current_topic: str
+    cards_generated: int
+    progress_percent: float
 
 
 # ============== API Endpoints ==============
@@ -638,7 +670,39 @@ def generate_flashcard(request: FlashcardRequest):
     # Search for context
     context = search_materials(topic_name, k=4)
 
-    # Generate card (pass previous_question to avoid repetition in "Still Learning" flow)
+    # First, check if we have cached cards for this topic
+    from .services.flashcard_cache import get_cached_flashcards
+
+    try:
+        with get_db() as db:
+            cached_cards = get_cached_flashcards(topic_name, context, db)
+
+            if cached_cards:
+                # Filter out the previous question if in "Still Learning" flow
+                available_cards = list(cached_cards)
+                if request.previous_question:
+                    available_cards = [
+                        c for c in cached_cards
+                        if c.question != request.previous_question
+                    ]
+                    # Fall back to all cards if we filtered everything out
+                    if not available_cards:
+                        available_cards = list(cached_cards)
+
+                # Return a random cached card
+                selected_card = random.choice(available_cards)
+                return FlashcardResponse(
+                    question=selected_card.question,
+                    answer=selected_card.answer,
+                    topic=topic_name,
+                    source="cache",
+                    flashcard_id=selected_card.id,
+                )
+    except Exception as e:
+        # Log cache lookup error but continue to LLM generation
+        print(f"Cache lookup error: {e}")
+
+    # No cached cards - generate via LLM
     card = generate_single_card(
         card_generator_llm,
         topic_name,
@@ -715,6 +779,58 @@ def get_stats_endpoint(db: Session = Depends(get_db_dependency)):
 def get_cache_stats_endpoint(db: Session = Depends(get_db_dependency)):
     """Get flashcard cache statistics."""
     return get_cache_stats(db)
+
+
+# ============== Background Prefetch Endpoints ==============
+
+
+@app.post("/api/prefetch", response_model=PrefetchResponse)
+def start_prefetch(request: PrefetchRequest):
+    """Start background flashcard generation for a chapter.
+
+    Returns immediately. Use /api/prefetch-status/{chapter_id} to check progress.
+    """
+    if not indexing_status["done"]:
+        raise HTTPException(
+            status_code=503,
+            detail="Document indexing not complete. Please wait.",
+        )
+
+    result = background_generator.start_prefetch(request.chapter_id)
+    return PrefetchResponse(**result)
+
+
+@app.get("/api/prefetch-status/{chapter_id}", response_model=PrefetchStatusResponse)
+def get_prefetch_status(chapter_id: int):
+    """Get background generation progress for a chapter."""
+    status = prefetch_status.get(chapter_id)
+
+    if status is None:
+        return PrefetchStatusResponse(
+            chapter_id=chapter_id,
+            state="idle",
+            total_topics=0,
+            completed_topics=0,
+            current_topic="",
+            cards_generated=0,
+            progress_percent=0.0,
+        )
+
+    progress = (
+        status["completed_topics"] / status["total_topics"] * 100
+        if status["total_topics"] > 0
+        else 0
+    )
+
+    return PrefetchStatusResponse(
+        chapter_id=chapter_id,
+        state=status["state"],
+        total_topics=status["total_topics"],
+        completed_topics=status["completed_topics"],
+        current_topic=status.get("current_topic", ""),
+        cards_generated=status["cards_generated"],
+        progress_percent=round(progress, 1),
+    )
 
 
 # Serve static files (local development only)

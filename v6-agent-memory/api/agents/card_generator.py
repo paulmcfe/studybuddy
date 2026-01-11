@@ -120,6 +120,71 @@ Reference material:
         return []
 
 
+def generate_cards_batch(
+    llm: ChatOpenAI,
+    topic: str,
+    context: str = "",
+    count: int = 6,
+) -> list[dict]:
+    """
+    Generate a specific number of flashcards for background prefetching.
+
+    Args:
+        llm: The language model to use
+        topic: The topic to create cards for
+        context: Retrieved context from knowledge base
+        count: Target number of cards (default 6, for 5-7 range)
+
+    Returns:
+        List of flashcard dictionaries
+    """
+    prompt = f"""Create exactly {count} high-quality flashcards for: {topic}
+
+{f'Reference material:{chr(10)}{context}' if context else 'Use your knowledge.'}
+
+CRITICAL RULES:
+1. Generate exactly {count} cards
+2. ONE testable fact per card - never combine multiple questions
+3. Answer must be 1-3 sentences (under 200 characters preferred)
+4. Question cannot contain "and" connecting two concepts
+5. Cover different aspects of the topic for variety
+
+Output format - respond with ONLY a JSON array:
+[{{"question": "...", "answer": "...", "difficulty": "basic|intermediate|advanced"}}]"""
+
+    messages = [
+        SystemMessage(content="You are a flashcard generator. Output only valid JSON."),
+        HumanMessage(content=prompt),
+    ]
+
+    response = llm.invoke(messages)
+
+    try:
+        content = response.content.strip()
+
+        # Handle markdown code blocks
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+            content = content.strip()
+
+        cards = json.loads(content)
+
+        # Ensure it's a list
+        if isinstance(cards, dict):
+            cards = [cards]
+
+        # Add topic to each card
+        for card in cards:
+            card["topic"] = topic
+
+        return cards
+
+    except json.JSONDecodeError:
+        return []
+
+
 def generate_single_card(
     llm: ChatOpenAI,
     topic: str,

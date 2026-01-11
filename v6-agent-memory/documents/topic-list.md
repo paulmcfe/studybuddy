@@ -132,12 +132,6 @@
 - Creating and managing collections
 - Retriever configuration
 
-## LangChain Middleware
-- What is middleware?
-- Common middleware patterns
-- Custom middleware development
-- When to use middleware
-
 ## Reflection and Iteration
 - Self-critique mechanisms
 - Error recovery patterns

@@ -70,7 +70,7 @@ class Flashcard(Base):
     __tablename__ = "flashcards"
 
     id = Column(String(36), primary_key=True)  # UUID
-    content_hash = Column(String(64), unique=True, index=True)  # SHA-256
+    content_hash = Column(String(64), index=True)  # SHA-256 - NOT unique, multiple cards share same hash
 
     # Card content
     topic = Column(String(200), nullable=False, index=True)
