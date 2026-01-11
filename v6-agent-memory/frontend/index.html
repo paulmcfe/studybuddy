@@ -563,9 +563,10 @@
         /* Tablet/Desktop: slide in from right */
         @media (min-width: 640px) {
             .chat-panel {
-                top: 0;
+                top: var(--visual-viewport-offset-top, 0px);
                 right: 0;
-                bottom: 0;
+                bottom: auto;
+                height: var(--visual-viewport-height, 100vh);
                 width: 400px;
                 border-left: 1px solid var(--color-border);
                 transform: translateX(100%);
@@ -984,7 +985,7 @@
             <!-- Mobile Header (visible < 640px) -->
             <header class="header" id="mobileHeader">
                 <div class="header-content">
-                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy v6.02</h1>
+                    <h1><img src="/images/studybuddy-icon.png" alt="" class="header-icon">StudyBuddy v6.05</h1>
                     <button type="button" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
                         <span class="icon-moon">🌙</span>
                         <span class="icon-sun">☀️</span>
@@ -1649,17 +1650,22 @@
             }
         }
 
-        // Handle mobile keyboard appearance using Visual Viewport API
-        function updateChatPanelHeight() {
+        // Handle mobile/tablet keyboard appearance using Visual Viewport API
+        function updateVisualViewport() {
             if (window.visualViewport) {
-                const height = window.visualViewport.height;
-                document.documentElement.style.setProperty('--chat-panel-height', `${height * 0.9}px`);
+                const vv = window.visualViewport;
+                // For mobile (bottom sheet): 90% of visual viewport height
+                document.documentElement.style.setProperty('--chat-panel-height', `${vv.height * 0.9}px`);
+                // For tablet/desktop (side panel): full visual viewport
+                document.documentElement.style.setProperty('--visual-viewport-height', `${vv.height}px`);
+                document.documentElement.style.setProperty('--visual-viewport-offset-top', `${vv.offsetTop}px`);
             }
         }
 
         if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', updateChatPanelHeight);
-            updateChatPanelHeight(); // Set initial value
+            window.visualViewport.addEventListener('resize', updateVisualViewport);
+            window.visualViewport.addEventListener('scroll', updateVisualViewport);
+            updateVisualViewport(); // Set initial value
         }
 
         function sendChatMessage() {
