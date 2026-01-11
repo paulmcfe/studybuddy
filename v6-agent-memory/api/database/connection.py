@@ -8,23 +8,43 @@ from sqlalchemy.orm import sessionmaker
 
 from .models import Base, User
 
-# On Vercel, use in-memory SQLite (filesystem is read-only)
-# Locally, use a file for persistence
+# Environment detection
 IS_VERCEL = os.environ.get("VERCEL") == "1"
+TURSO_URL = os.environ.get("TURSO_DATABASE_URL")
+TURSO_TOKEN = os.environ.get("TURSO_AUTH_TOKEN")
 
-if IS_VERCEL:
+# Database configuration priority:
+# 1. Turso (if credentials provided) - works everywhere
+# 2. Local SQLite file (for development)
+# 3. In-memory SQLite (Vercel fallback without Turso)
+
+if TURSO_URL and TURSO_TOKEN:
+    # Turso: use libSQL with remote database
+    DATABASE_URL = f"sqlite+libsql://{TURSO_URL}?secure=true"
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"auth_token": TURSO_TOKEN},
+        echo=False,
+    )
+    DB_PATH = "turso"
+elif IS_VERCEL:
+    # Vercel without Turso: in-memory (limited - data won't persist)
     DATABASE_URL = "sqlite:///:memory:"
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        echo=False,
+    )
     DB_PATH = ":memory:"
 else:
+    # Local development: SQLite file
     DB_PATH = Path(__file__).parent.parent.parent / "studybuddy.db"
     DATABASE_URL = f"sqlite:///{DB_PATH}"
-
-# Create engine with SQLite-specific settings
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False},  # Required for FastAPI
-    echo=False,  # Set True for SQL debugging
-)
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        echo=False,
+    )
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

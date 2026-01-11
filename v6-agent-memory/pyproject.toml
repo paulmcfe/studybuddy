@@ -27,6 +27,7 @@ dependencies = [
 
     # Persistence (NEW for v6)
     "sqlalchemy>=2.0.0",
+    "sqlalchemy-libsql>=0.2.0",  # Turso/libSQL support for serverless
 ]
 
 [build-system]
