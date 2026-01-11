@@ -242,7 +242,12 @@ scheduler_llm = create_scheduler_agent("gpt-4o")
 
 def search_materials(query: str, k: int = 4) -> str:
     """Search the knowledge base for relevant content."""
-    results = vector_store.similarity_search(query, k=k)
+    try:
+        results = vector_store.similarity_search(query, k=k)
+    except ValueError as e:
+        # Qdrant can have shape mismatches if collection is corrupted
+        print(f"Vector store search error: {e}")
+        return ""
 
     if not results:
         return ""
@@ -443,6 +448,7 @@ def build_studybuddy_graph():
 # Create the agent (will be initialized after indexing)
 studybuddy = None
 _initialized = False
+_init_lock = threading.Lock()
 
 
 def ensure_initialized():
@@ -451,19 +457,24 @@ def ensure_initialized():
     if _initialized:
         return
 
-    print("Initializing StudyBuddy v6...")
+    with _init_lock:
+        # Double-check after acquiring lock
+        if _initialized:
+            return
 
-    # Initialize database
-    init_database()
+        print("Initializing StudyBuddy v6...")
 
-    # Index documents
-    index_reference_guides()
+        # Initialize database
+        init_database()
 
-    # Build graph
-    studybuddy = build_studybuddy_graph()
+        # Index documents
+        index_reference_guides()
 
-    _initialized = True
-    print("Multi-agent system with persistence ready!")
+        # Build graph
+        studybuddy = build_studybuddy_graph()
+
+        _initialized = True
+        print("Multi-agent system with persistence ready!")
 
 
 # ============== FastAPI Application ==============
