@@ -545,11 +545,11 @@
         /* Mobile: slide up from bottom */
         @media (max-width: 639px) {
             .chat-panel {
+                top: 10vh; /* Fallback */
+                top: 10dvh; /* Dynamic - adjusts for mobile keyboard */
                 bottom: 0;
                 left: 0;
                 right: 0;
-                height: 90vh; /* Fallback for browsers without dvh support */
-                height: 90dvh; /* Dynamic viewport height - adjusts for mobile keyboard */
                 border-radius: var(--radius-lg) var(--radius-lg) 0 0;
                 transform: translateY(100%);
             }
