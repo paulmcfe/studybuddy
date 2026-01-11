@@ -9,57 +9,32 @@ from sqlalchemy.orm import sessionmaker
 from .models import Base, User
 
 # Environment detection
-IS_VERCEL = os.environ.get("VERCEL") == "1"
-TURSO_URL = os.environ.get("TURSO_DATABASE_URL")
-TURSO_TOKEN = os.environ.get("TURSO_AUTH_TOKEN")
+POSTGRES_URL = os.environ.get("POSTGRES_URL")
 
-# Database configuration priority:
-# 1. Turso (if credentials provided and libsql available)
-# 2. Local SQLite file (for development)
-# 3. In-memory SQLite (Vercel fallback without Turso)
+# Database configuration:
+# 1. Vercel Postgres if POSTGRES_URL is set
+# 2. Local SQLite file for development
 
-engine = None
-DB_PATH = None
-
-if TURSO_URL and TURSO_TOKEN:
-    # Try Turso with libSQL
-    try:
-        # Import triggers dialect registration
-        import sqlalchemy_libsql  # noqa: F401
-
-        DATABASE_URL = f"sqlite+libsql://{TURSO_URL}?secure=true"
-        engine = create_engine(
-            DATABASE_URL,
-            connect_args={"auth_token": TURSO_TOKEN},
-            echo=False,
-        )
-        DB_PATH = "turso"
-        print("Using Turso database")
-    except ImportError as e:
-        print(f"Turso credentials found but libsql not available: {e}")
-        # Fall through to next option
-
-if engine is None:
-    if IS_VERCEL:
-        # Vercel without Turso: in-memory (limited - data won't persist)
-        DATABASE_URL = "sqlite:///:memory:"
-        engine = create_engine(
-            DATABASE_URL,
-            connect_args={"check_same_thread": False},
-            echo=False,
-        )
-        DB_PATH = ":memory:"
-        print("Using in-memory SQLite (Vercel fallback)")
-    else:
-        # Local development: SQLite file
-        DB_PATH = Path(__file__).parent.parent.parent / "studybuddy.db"
-        DATABASE_URL = f"sqlite:///{DB_PATH}"
-        engine = create_engine(
-            DATABASE_URL,
-            connect_args={"check_same_thread": False},
-            echo=False,
-        )
-        print(f"Using local SQLite: {DB_PATH}")
+if POSTGRES_URL:
+    # Vercel Postgres (fix URL scheme for SQLAlchemy 2.0)
+    DATABASE_URL = POSTGRES_URL.replace("postgres://", "postgresql://", 1)
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,  # Verify connections before using
+        pool_size=5,  # Keep pool small for serverless
+        max_overflow=10,
+    )
+    DB_PATH = "postgres"
+    print("Using Vercel Postgres")
+else:
+    # Local development: SQLite file
+    DB_PATH = Path(__file__).parent.parent.parent / "studybuddy.db"
+    DATABASE_URL = f"sqlite:///{DB_PATH}"
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+    )
+    print(f"Using local SQLite: {DB_PATH}")
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

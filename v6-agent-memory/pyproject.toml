@@ -27,7 +27,7 @@ dependencies = [
 
     # Persistence (NEW for v6)
     "sqlalchemy>=2.0.0",
-    # "sqlalchemy-libsql>=0.2.0",  # Turso - disabled until native deps work on Vercel
+    "psycopg2-binary>=2.9.0",  # PostgreSQL driver for Vercel Postgres
 ]
 
 [build-system]
