@@ -234,11 +234,11 @@ def get_topics_for_scope(chapter_id: int, scope: str) -> list[dict]:
 # ============== Agent Setup ==============
 
 # Create the specialized agents
-tutor_llm = create_tutor_agent("gpt-5-nano")
+tutor_llm = create_tutor_agent("gpt-4o")
 card_generator_llm = create_card_generator_agent("gpt-4o-mini")
-quality_checker_llm = create_quality_checker_agent("gpt-5-nano")
-supervisor_llm = create_supervisor_agent("gpt-5-nano")
-scheduler_llm = create_scheduler_agent("gpt-5-nano")
+quality_checker_llm = create_quality_checker_agent("gpt-4o")
+supervisor_llm = create_supervisor_agent("gpt-4o")
+scheduler_llm = create_scheduler_agent("gpt-4o")
 
 def search_materials(query: str, k: int = 4) -> str:
     """Search the knowledge base for relevant content."""
