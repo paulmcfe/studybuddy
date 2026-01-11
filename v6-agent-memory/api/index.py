@@ -588,11 +588,16 @@ def get_status():
     """Check indexing status. On Vercel, triggers initialization."""
     if IS_VERCEL:
         ensure_initialized()
+
+    # Import here to get current values
+    from .database.connection import DB_PATH, TURSO_URL
+
     return {
         "indexing_complete": indexing_status["done"],
         "documents_indexed": indexing_status["count"],
         "chunks_in_db": indexing_status["chunks"],
         "current_file": indexing_status["current_file"],
+        "db_backend": "turso" if TURSO_URL else ("memory" if DB_PATH == ":memory:" else "sqlite"),
     }
 
 
