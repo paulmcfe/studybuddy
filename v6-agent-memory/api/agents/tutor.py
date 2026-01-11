@@ -26,7 +26,7 @@ sourced explanations. If no context is provided, use your general knowledge
 but be clear about what's from the reference materials vs general knowledge."""
 
 
-def create_tutor_agent(model_name: str = "gpt-5-nano"):
+def create_tutor_agent(model_name: str = "gpt-4o"):
     """Create the Tutor agent."""
     return ChatOpenAI(model=model_name, temperature=0.7)
 

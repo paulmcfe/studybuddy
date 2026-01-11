@@ -40,7 +40,7 @@ Always be encouraging about progress while being honest about areas
 that need more practice."""
 
 
-def create_scheduler_agent(model_name: str = "gpt-5-nano"):
+def create_scheduler_agent(model_name: str = "gpt-4o-mini"):
     """Create the Scheduler agent."""
     return ChatOpenAI(model=model_name, temperature=0.3)
 
