@@ -23,7 +23,7 @@ studybuddy/
 ├── v4-agentic-rag/
 ├── v5-multi-agent/
 ├── v6-memory-enhanced/
-├── v7-learning-planner/
+├── v7-deep-agents/
 ├── v8-evaluation/
 ├── v9-optimized-retrieval/
 ├── v10-full-stack/
