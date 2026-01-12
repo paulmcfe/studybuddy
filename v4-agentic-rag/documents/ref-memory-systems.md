@@ -47,6 +47,122 @@ Procedural memory shapes how the agent behaves rather than what it knows.
 └─────────────────────────────────────────────────────────────┘
 ```
 
+## StudyBuddy v6 Memory Implementation
+
+StudyBuddy v6 uses a custom SQLAlchemy-based memory store backed by PostgreSQL. This avoids external dependencies and gives us full control over the memory schema.
+
+### Database Schema
+
+Memories are stored with a namespace-key-value structure:
+
+```python
+class Memory(Base):
+    """User memory storage for learning preferences, struggles, goals."""
+
+    __tablename__ = "memories"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(50), ForeignKey("users.id"), nullable=False, index=True)
+    namespace = Column(String(100), nullable=False, index=True)
+    key = Column(String(200), nullable=False)
+    value = Column(JSON, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+```
+
+### Namespace Conventions
+
+Memories are organized by namespace for easy categorization:
+
+- `preferences`: Learning style, favorite topics, explanation depth
+- `struggles`: Topics the user finds difficult
+- `goals`: What the user is studying for
+- `sessions`: Summaries of past study sessions
+
+### The MemoryStore Class
+
+```python
+class MemoryStore:
+    """Simple memory store backed by SQLAlchemy.
+
+    Usage:
+        store = MemoryStore(db_session)
+        store.put("default", "preferences", "learning_style", {"type": "visual"})
+        memories = store.search("default", "preferences")
+    """
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def put(self, user_id: str, namespace: str, key: str, value: dict) -> Memory:
+        """Store or update a memory."""
+        # Check for existing memory
+        existing = (
+            self.db.query(Memory)
+            .filter_by(user_id=user_id, namespace=namespace, key=key)
+            .first()
+        )
+
+        if existing:
+            existing.value = value
+            existing.updated_at = datetime.utcnow()
+            self.db.commit()
+            return existing
+        else:
+            memory = Memory(
+                id=str(uuid.uuid4()),
+                user_id=user_id,
+                namespace=namespace,
+                key=key,
+                value=value,
+            )
+            self.db.add(memory)
+            self.db.commit()
+            return memory
+
+    def get(self, user_id: str, namespace: str, key: str) -> dict | None:
+        """Get a specific memory by key."""
+        memory = (
+            self.db.query(Memory)
+            .filter_by(user_id=user_id, namespace=namespace, key=key)
+            .first()
+        )
+        return memory.value if memory else None
+
+    def search(self, user_id: str, namespace: str | None = None, limit: int = 10) -> list[dict]:
+        """Search memories in a namespace."""
+        query = self.db.query(Memory).filter_by(user_id=user_id)
+
+        if namespace:
+            query = query.filter_by(namespace=namespace)
+
+        query = query.order_by(Memory.updated_at.desc()).limit(limit)
+
+        return [
+            {
+                "namespace": m.namespace,
+                "key": m.key,
+                "value": m.value,
+                "updated_at": m.updated_at.isoformat() if m.updated_at else None,
+            }
+            for m in query.all()
+        ]
+
+    def delete(self, user_id: str, namespace: str, key: str) -> bool:
+        """Delete a specific memory."""
+        memory = (
+            self.db.query(Memory)
+            .filter_by(user_id=user_id, namespace=namespace, key=key)
+            .first()
+        )
+
+        if memory:
+            self.db.delete(memory)
+            self.db.commit()
+            return True
+        return False
+```
+
 ## Memory Formation
 
 ### Hot Path Memory
@@ -54,19 +170,20 @@ Procedural memory shapes how the agent behaves rather than what it knows.
 Memory created during the conversation while the agent is actively responding.
 
 ```python
-# During conversation, agent decides to remember something
-@tool
-def remember(fact: str) -> str:
-    """
-    Store an important fact about the user or conversation.
-    Use when the user shares preferences, goals, or important context.
-    """
-    memory_store.add(
-        content=fact,
-        type="semantic",
-        timestamp=datetime.now()
+# During tutoring, remember what the user struggles with
+def remember_struggle(user_id: str, topic: str, context: str, db: Session):
+    """Record that a user is struggling with a topic."""
+    store = MemoryStore(db)
+    store.put(
+        user_id=user_id,
+        namespace="struggles",
+        key=topic.lower().replace(" ", "_"),
+        value={
+            "topic": topic,
+            "context": context,
+            "recorded_at": datetime.utcnow().isoformat(),
+        }
     )
-    return f"I'll remember that: {fact}"
 ```
 
 **Pros:** Immediate, agent can decide what's important in context.
@@ -77,171 +194,97 @@ def remember(fact: str) -> str:
 Memory extracted from conversations after they complete.
 
 ```python
-def extract_memories_background(conversation: list[Message]):
-    """Run after conversation ends to extract memories."""
-    
-    # Use LLM to identify important information
-    prompt = """Analyze this conversation and extract:
-    1. User preferences mentioned
-    2. Important facts shared
-    3. Topics discussed
-    4. Any commitments or follow-ups needed
-    
-    Conversation:
-    {conversation}
+def extract_memories_from_conversation(conversation_text: str, llm) -> list[dict]:
+    """Extract memorable information from conversation text.
+
+    Uses LLM to identify information worth remembering:
+    - User preferences
+    - Learning goals
+    - Struggle areas
+    - Important context
     """
-    
-    extraction = llm.invoke(prompt.format(conversation=conversation))
-    
-    for memory in parse_memories(extraction):
-        memory_store.add(memory)
+    system_prompt = """Extract memorable information from this conversation that would be useful to remember for future tutoring sessions.
+
+Look for:
+- Learning preferences (visual learner, prefers examples, etc.)
+- Goals (studying for certification, learning for job, etc.)
+- Struggle areas (topics they find confusing)
+- Background info (experience level, related knowledge)
+
+Return a JSON array of memories to store:
+[
+    {
+        "namespace": "preferences|goals|struggles|background",
+        "key": "short_identifier",
+        "value": {"description": "...", "context": "..."}
+    }
+]
+
+If nothing memorable, return an empty array: []"""
+
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=f"Conversation:\n{conversation_text}"),
+    ]
+
+    response = llm.invoke(messages)
+    return json.loads(response.content)
 ```
 
 **Pros:** Doesn't add latency to conversations, can do deeper analysis.
 **Cons:** May miss nuance, extraction quality varies.
 
-### Hybrid Approach
+## Memory Storage with PostgreSQL
 
-Combine both: hot path for explicit memory requests, background for automatic extraction.
+StudyBuddy v6 uses PostgreSQL for persistence, which works on both local development and Vercel serverless.
 
-## LangGraph Memory (langmem)
-
-LangGraph provides native memory capabilities through the `langmem` library.
-
-### Setup
+### Connection Setup
 
 ```python
-from langgraph.store.memory import InMemoryStore
-from langmem import create_manage_memory_tool, create_search_memory_tool
+# PostgreSQL connection (required)
+POSTGRES_URL = os.environ.get("POSTGRES_URL")
 
-# Create memory store
-memory_store = InMemoryStore()
-
-# Create memory tools
-manage_memory = create_manage_memory_tool(memory_store)
-search_memory = create_search_memory_tool(memory_store)
-```
-
-### Using Memory Tools
-
-```python
-from langchain.agents import create_agent
-
-agent = create_agent(
-    model="gpt-5-nano",
-    tools=[manage_memory, search_memory, other_tools...],
-    system_prompt="""You have access to a memory system.
-
-Use manage_memory to store important information about the user:
-- Preferences and interests
-- Goals they're working toward
-- Facts they share about themselves
-- Topics they want to revisit
-
-Use search_memory to recall relevant information from past conversations.
-
-Always check memory at the start of conversations for relevant context."""
-)
-```
-
-### Memory Namespaces
-
-Organize memories by user, topic, or any dimension:
-
-```python
-# Store memory with namespace
-memory_store.put(
-    namespace=("user", user_id, "preferences"),
-    key="learning_style",
-    value={"preference": "detailed_explanations", "examples": True}
-)
-
-# Retrieve by namespace
-preferences = memory_store.search(
-    namespace=("user", user_id, "preferences")
-)
-```
-
-## Memory Storage Backends
-
-### InMemoryStore
-
-Good for development and testing. Data lost when process stops.
-
-```python
-from langgraph.store.memory import InMemoryStore
-store = InMemoryStore()
-```
-
-### PostgreSQL
-
-Production-grade persistent storage.
-
-```python
-from langgraph.store.postgres import PostgresStore
-
-store = PostgresStore(
-    connection_string="postgresql://user:pass@localhost/memorydb"
-)
-```
-
-### Redis
-
-Fast, good for session-based memory with TTL.
-
-```python
-from langgraph.store.redis import RedisStore
-
-store = RedisStore(
-    url="redis://localhost:6379",
-    ttl=86400  # Memories expire after 24 hours
-)
-```
-
-## Memory Retrieval
-
-### Semantic Search
-
-Find memories related to current context:
-
-```python
-def get_relevant_memories(query: str, user_id: str, k: int = 5):
-    """Retrieve memories semantically related to the query."""
-    
-    results = memory_store.search(
-        namespace=("user", user_id),
-        query=query,
-        limit=k
+if not POSTGRES_URL:
+    raise RuntimeError(
+        "POSTGRES_URL environment variable is required. "
+        "Set it in your .env file, e.g.: POSTGRES_URL=postgresql://localhost/studybuddy"
     )
-    
-    return [r.value for r in results]
+
+# Fix URL scheme for SQLAlchemy 2.0 (Vercel uses postgres://)
+DATABASE_URL = POSTGRES_URL.replace("postgres://", "postgresql://", 1)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,  # Verify connections before using
+    pool_size=5,
+    max_overflow=10,
+)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 ```
 
-### Recency Weighting
-
-Combine relevance with recency:
+### Using the Memory Store
 
 ```python
-def get_memories_with_recency(query: str, user_id: str):
-    """Get memories weighted by both relevance and recency."""
-    
-    results = memory_store.search(
-        namespace=("user", user_id),
-        query=query,
-        limit=20
+from api.database.connection import get_db
+from api.services.memory_store import MemoryStore
+
+# In an endpoint or agent
+with get_db() as db:
+    store = MemoryStore(db)
+
+    # Store a learning preference
+    store.put(
+        user_id="default",
+        namespace="preferences",
+        key="explanation_style",
+        value={"style": "detailed", "prefers_examples": True}
     )
-    
-    # Score by relevance * recency
-    scored = []
-    now = datetime.now()
-    for r in results:
-        age_hours = (now - r.metadata["timestamp"]).total_seconds() / 3600
-        recency_weight = 1 / (1 + age_hours / 24)  # Decay over days
-        combined_score = r.score * recency_weight
-        scored.append((combined_score, r))
-    
-    scored.sort(reverse=True)
-    return [r for _, r in scored[:5]]
+
+    # Retrieve user's preferences
+    prefs = store.search("default", "preferences")
+
+    # Get a specific memory
+    style = store.get("default", "preferences", "explanation_style")
 ```
 
 ## Memory Integration Patterns
@@ -251,64 +294,60 @@ def get_memories_with_recency(query: str, user_id: str):
 Load relevant memories into system prompt:
 
 ```python
-def build_system_prompt(user_id: str, current_query: str):
-    memories = get_relevant_memories(current_query, user_id)
-    
-    memory_context = "\n".join([
-        f"- {m['content']}" for m in memories
-    ])
-    
-    return f"""You are a helpful assistant.
+def build_personalized_prompt(user_id: str, db: Session):
+    store = MemoryStore(db)
 
-Known information about this user:
+    # Get user's learning preferences
+    preferences = store.search(user_id, "preferences")
+    struggles = store.search(user_id, "struggles")
+
+    memory_context = ""
+    if preferences:
+        memory_context += "User preferences:\n"
+        for p in preferences:
+            memory_context += f"- {p['key']}: {p['value']}\n"
+
+    if struggles:
+        memory_context += "\nTopics user struggles with:\n"
+        for s in struggles:
+            memory_context += f"- {s['key']}\n"
+
+    return f"""You are a helpful tutor.
+
 {memory_context}
 
-Use this context to personalize your responses."""
+Use this context to personalize your explanations."""
 ```
 
-### On-Demand Retrieval
+### Using Memories in Spaced Repetition
 
-Agent searches memory when needed:
-
-```python
-@tool
-def recall(topic: str) -> str:
-    """
-    Search memory for information about a topic.
-    Use when you need to remember something about the user or past conversations.
-    """
-    memories = memory_store.search(
-        query=topic,
-        limit=5
-    )
-    
-    if not memories:
-        return "No relevant memories found."
-    
-    return "\n".join([f"- {m.value['content']}" for m in memories])
-```
-
-### Proactive Memory
-
-System suggests relevant memories:
+StudyBuddy v6 combines memory with spaced repetition to identify struggle areas:
 
 ```python
-def get_proactive_memories(conversation_context: str, user_id: str):
-    """Find memories the user might not ask about but would be helpful."""
-    
-    # Look for related past topics
-    related = memory_store.search(
-        namespace=("user", user_id, "topics"),
-        query=conversation_context,
-        limit=3
+def get_study_stats(db: Session, user_id: str) -> dict:
+    """Get study statistics including struggle areas from review history."""
+
+    # Find cards with low ease factor (struggled cards)
+    struggle_cards = (
+        db.query(CardReview)
+        .filter_by(user_id=user_id)
+        .filter(CardReview.ease_factor < 2.0)
+        .all()
     )
-    
-    suggestions = []
-    for memory in related:
-        if memory.score > 0.7:  # High relevance threshold
-            suggestions.append(memory.value)
-    
-    return suggestions
+
+    # Group by topic
+    struggle_topics = {}
+    for review in struggle_cards:
+        topic = review.flashcard.topic
+        struggle_topics[topic] = struggle_topics.get(topic, 0) + 1
+
+    # Sort by struggle count
+    sorted_struggles = sorted(struggle_topics.items(), key=lambda x: -x[1])
+
+    return {
+        "struggle_areas": [topic for topic, _ in sorted_struggles[:5]],
+        # ... other stats
+    }
 ```
 
 ## Privacy and Data Governance
@@ -318,48 +357,26 @@ Memory systems store personal data. Consider:
 ### User Control
 
 ```python
-@tool
-def forget(topic: str) -> str:
-    """
-    Remove memories about a specific topic.
-    Use when the user asks you to forget something.
-    """
-    deleted = memory_store.delete(
-        namespace=("user", current_user_id),
-        filter={"topic": topic}
-    )
-    return f"Removed {deleted} memories about {topic}"
+def delete_user_memory(user_id: str, namespace: str, key: str, db: Session) -> bool:
+    """Allow users to delete specific memories."""
+    store = MemoryStore(db)
+    return store.delete(user_id, namespace, key)
 
-@tool  
-def show_memories() -> str:
-    """Show all stored memories for the current user."""
-    memories = memory_store.list(
-        namespace=("user", current_user_id)
-    )
-    return format_memories_for_display(memories)
+def list_user_memories(user_id: str, db: Session) -> list[dict]:
+    """Show all stored memories for transparency."""
+    store = MemoryStore(db)
+    return store.search(user_id, limit=100)
 ```
 
 ### Data Retention
 
 ```python
-# Automatic cleanup of old memories
-def cleanup_old_memories(max_age_days: int = 90):
-    cutoff = datetime.now() - timedelta(days=max_age_days)
-    
-    memory_store.delete(
-        filter={"timestamp": {"$lt": cutoff}}
-    )
-```
+def cleanup_old_memories(max_age_days: int = 90, db: Session):
+    """Automatic cleanup of old memories."""
+    cutoff = datetime.utcnow() - timedelta(days=max_age_days)
 
-### Access Control
-
-```python
-# Ensure users can only access their own memories
-def get_user_memories(user_id: str, requesting_user_id: str):
-    if user_id != requesting_user_id:
-        raise PermissionError("Cannot access other users' memories")
-    
-    return memory_store.search(namespace=("user", user_id))
+    db.query(Memory).filter(Memory.updated_at < cutoff).delete()
+    db.commit()
 ```
 
 ## Graceful Degradation
@@ -367,20 +384,14 @@ def get_user_memories(user_id: str, requesting_user_id: str):
 Memory systems can fail. Handle gracefully:
 
 ```python
-def get_memories_safe(user_id: str, query: str):
+def get_memories_safe(user_id: str, namespace: str, db: Session) -> list[dict]:
     """Get memories with fallback on failure."""
     try:
-        return memory_store.search(
-            namespace=("user", user_id),
-            query=query,
-            timeout=2.0  # Don't wait forever
-        )
-    except MemoryStoreError as e:
+        store = MemoryStore(db)
+        return store.search(user_id, namespace, limit=10)
+    except Exception as e:
         logger.warning(f"Memory retrieval failed: {e}")
         return []  # Continue without memories
-    except TimeoutError:
-        logger.warning("Memory retrieval timed out")
-        return []
 ```
 
 ## Memory vs. RAG
@@ -394,13 +405,13 @@ Memory and RAG both provide context, but serve different purposes:
 | Updates | Continuous, from interactions | Batch, from document changes |
 | Query type | "What do I know about this user?" | "What information exists about X?" |
 
-Often used together: RAG for knowledge, memory for personalization.
+StudyBuddy v6 uses both: RAG for course content, memory for user personalization.
 
 ## Best Practices
 
 1. **Be selective** about what to remember. Not everything is worth storing.
 
-2. **Structure memories** consistently. Use schemas for different memory types.
+2. **Use namespaces** to organize memories logically.
 
 3. **Provide user transparency**. Let users see and manage their memories.
 
@@ -408,11 +419,11 @@ Often used together: RAG for knowledge, memory for personalization.
 
 5. **Handle failures gracefully**. Agents should work (less well) without memory.
 
-6. **Respect privacy**. Don't store sensitive information unnecessarily.
+6. **Keep it simple**. A SQLAlchemy model with namespace-key-value is often enough.
 
 ## Related Concepts
 
 - **Agents**: Primary users of memory systems
 - **RAG**: Complementary knowledge retrieval
-- **Context Engineering**: Managing what goes in the context window
-- **LangGraph**: Framework providing native memory support
+- **Spaced Repetition**: Uses memory to track learning progress
+- **PostgreSQL**: Production-grade storage backend
