@@ -1978,6 +1978,9 @@
             $('studyScreen').setAttribute('aria-hidden', 'true');
             $('studyScreen').setAttribute('inert', '');
             $('sidebar').classList.remove('studying');
+
+            // Update curriculum button state (may have changed during study)
+            checkForExistingCurriculum();
         }
 
         function flipCard() {
