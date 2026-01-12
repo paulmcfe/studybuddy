@@ -452,13 +452,14 @@
 - When to consider Claude's SDK
 
 ## Building StudyBuddy v7
-- Adding deep agent capabilities for learning planning
-- Planning multi-week study schedules
-- Breaking complex topics into prerequisite chains ("Learn transformers" → research fundamentals → plan sequence → generate materials → track progress)
-- Spawning subagents for researching topics before explaining them
-- Task decomposition and long-horizon planning
-- Managing learning context over multiple sessions
-- Testing learning path generation
+- Adding deep agent capabilities with the **Curriculum Planner Agent**
+- Task decomposition: Breaking complex learning goals into chapters, sections, and prerequisite chains
+- Learning path optimization using backward chaining from goals
+- Subagent spawning: Curriculum planner delegates to card generator for each section
+- Progress checkpoints: Define milestones that trigger knowledge assessments
+- Context summarization: Compress long study sessions to maintain context across interactions
+- Managing learning context over multiple sessions with selective retention
+- Testing curriculum generation and learning path planning
 - Backtracking when a learning approach isn't working
 
 ---
@@ -523,18 +524,20 @@
 - Running evaluations at scale
 
 ## Building StudyBuddy v8
-- Generating synthetic test data for StudyBuddy:
-  - Questions a student might ask (easy, medium, hard)
-  - Flashcards to validate (clear, ambiguous, incorrect)
-  - Edge cases and difficult concepts
-- Using RAGAS testset generation approach
+- **Synthetic test data generation** using RAGAS knowledge graph approach:
+  - Question-answer pairs from reference documents
+  - Flashcard quality validation sets (clear, ambiguous, incorrect examples)
+  - Edge cases and difficult concepts at varying difficulty levels
+- **Knowledge graph construction** from documents to ensure comprehensive topic coverage
 - Building evaluation datasets for:
-  - Tutoring explanation quality
-  - Flashcard clarity and usefulness
-  - Learning effectiveness over time
-- Setting up LangSmith evaluation pipelines
-- Creating baseline performance metrics
-- Testing across different topics and difficulty levels
+  - Tutoring explanation quality and accuracy
+  - Flashcard clarity, usefulness, and pedagogical value
+  - Retrieval accuracy (preparing for v9 improvements)
+- **LangSmith dataset integration**: Store and version evaluation datasets
+- Setting up systematic evaluation pipelines in LangSmith
+- Creating baseline performance metrics for comparison
+- **Evaluation dashboard**: Display quality scores and identify weak content areas
+- Metrics-driven development: Using evals to drive improvement
 
 ---
 
@@ -602,15 +605,15 @@
 - Making data-driven decisions
 
 ## Building StudyBuddy v9
-- Implementing hybrid search (dense + BM25) for study materials
-- Adding Cohere reranking for better context
-- Semantic chunking for study materials (content-aware boundaries)
-- Implementing RAG-Fusion for comprehensive topic coverage
+- **Hybrid search**: Combining dense vector search with BM25 keyword search using Reciprocal Rank Fusion
+- **Reranking pipeline**: Adding Cohere cross-encoder reranker to improve retrieval precision
+- **RAG-Fusion**: Generating multiple query variations and fusing results for better recall
+- **Semantic chunking**: Replacing fixed-size chunks with content-aware chunking that respects section boundaries
 - Running evaluations using the datasets from v8
-- Measuring retrieval improvements with RAGAS metrics
-- Comparing retrieval strategies systematically
-- Documenting performance gains
-- Optimizing for both speed and quality
+- Measuring retrieval improvements with RAGAS metrics (faithfulness, relevance, context precision/recall)
+- **Retrieval comparison tool**: Systematic side-by-side comparison of retrieval strategies
+- Documenting quantitative performance gains
+- Balancing retrieval quality vs. latency trade-offs
 
 ---
 
@@ -671,18 +674,21 @@
 - Session management
 
 ## Building StudyBuddy v10
-- Building proper frontend (beyond simple chat):
-  - Learning dashboard showing progress, streaks, mastery stats
-  - Flashcard review interface (swipe/tap for right/wrong)
-  - Material upload interface with drag-and-drop
-  - Study calendar and session scheduling
-  - Analytics visualizations
-- FastAPI backend improvements
-- Real-time progress tracking
-- Mobile-friendly flashcard reviews
-- Connecting all v5-v9 capabilities to the UI
-- Testing the complete user experience
-- Optional: Using open-source models via Ollama as alternative to OpenAI
+- **Generalizing StudyBuddy to learn ANY subject** (the major feature):
+  - **Document upload**: Upload PDF, Markdown, or text files to create custom knowledge bases
+  - **Custom topic lists**: Upload or AI-generate topic-list.md for any subject
+  - **Learning program management**: Create, switch between, and manage multiple programs (Spanish, History, Cooking, etc.)
+  - **AI curriculum generation**: "Create a learning program for [topic]" generates complete curriculum
+- Building proper full-stack UI:
+  - **Progress dashboard** with charts showing learning progress across all programs
+  - Program selector and management interface
+  - Document upload with drag-and-drop
+  - Analytics visualizations per program
+- **Streaming responses**: WebSocket-based streaming for long generation tasks
+- FastAPI file handling and background jobs
+- User-scoped data isolation (preparing for v12's multi-user)
+- Connecting v7's curriculum planner + v9's advanced retrieval for user documents
+- Testing the complete user experience across multiple learning programs
 
 ---
 
@@ -731,16 +737,17 @@
 - Mock servers for development
 
 ## Building StudyBuddy v11
-- Using MCP to connect to external learning resources:
-  - **Notion:** Pull study notes and personal knowledge bases
-  - **Google Drive:** Access documents and PDFs
-  - **GitHub:** Learn from code repositories and documentation
-  - **Calendar:** Schedule study sessions automatically
-- Expanding beyond just uploaded files to distributed learning materials
-- Managing multiple MCP connections
-- Handling authentication across services
-- Testing integrations
-- Graceful degradation when services are unavailable
+- **MCP client integration** with LangChain adapters for external data sources
+- **GitHub connector (full implementation)**:
+  - Import README files, docs, and markdown from repos as learning materials
+  - OAuth authentication flow
+  - Incremental sync (track changes, re-index only updates)
+- **Notion connector (demo)**: Stub implementation showing the pattern with mock data
+- **Google Drive connector (demo)**: Stub showing OAuth flow pattern without full implementation
+- **Connector management UI**: Add, configure, and view sync status for external sources
+- External sources become content within Learning Programs from v10
+- Handling authentication and authorization patterns
+- Testing integrations and graceful degradation when services unavailable
 
 ---
 
@@ -803,15 +810,17 @@
 - Cost optimization at scale
 
 ## Building StudyBuddy v12
-- Packaging StudyBuddy for production deployment
-- Deploying to LangSmith Deployment as production API
-- Setting up proper authentication and user management
-- Supporting multiple concurrent users with isolated memory and progress
-- Implementing health checks and monitoring
-- Load testing with multiple users
-- Setting up production observability with LangSmith
-- Cost analysis and optimization strategies
-- Documenting the deployment process
+- **User authentication**: Full JWT auth with registration, login, password reset, email verification
+- **Multi-user data isolation**: User-scoped Qdrant collections, learning programs, and progress
+- **LangSmith Deployment**: Package and deploy agents as production API endpoints (~$30-40/month)
+- **Production monitoring**: Metrics collection, health checks, alerting setup
+- **Rate limiting**: Per-user request limits to manage costs and prevent abuse
+- **Background job queue**: Redis-backed async processing for long-running tasks
+- Docker containerization for deployment
+- PostgreSQL mandatory (no SQLite fallback)
+- Load testing with multiple concurrent users
+- Setting up production observability with LangSmith tracing
+- Documenting the deployment process and cost analysis
 
 ---
 
@@ -862,14 +871,18 @@
 - Audit logging
 
 ## Building StudyBuddy v13
-- Adding support for open-source models via Together AI
-- Swapping OpenAI with Llama/Mixtral for cost reduction
+- **Open-source LLM support**: Use Llama, Mixtral via Together AI as alternatives to OpenAI
+- **Model selection**: Per-task model configuration (open models for card generation, OpenAI for complex reasoning)
 - Deploying open-source embedding models
-- Benchmarking open vs. proprietary model performance
-- Setting up StudyBuddy as an MCP server so other agents can access its learning capabilities
-- Implementing A2A patterns (other agents can query StudyBuddy's knowledge)
-- Testing interoperability with other AI systems
-- Documenting cost savings with open-source models
+- Benchmarking open vs. proprietary model quality and latency
+- **StudyBuddy MCP Server**: Expose capabilities as MCP tools for other agents:
+  - `generate_flashcards`: Create flashcards for a topic
+  - `explain_concept`: Get tutoring explanation
+  - `get_curriculum`: Retrieve curriculum structure
+  - `search_knowledge`: Search indexed materials
+- **Agent-to-agent communication**: Allow external agents to request StudyBuddy services
+- **Cost comparison dashboard**: Compare token costs between providers
+- Documenting cost savings achievable with open-source models
 
 ---
 
@@ -943,17 +956,17 @@
 
 ## Building StudyBuddy v14
 - **This is the final, production-ready, deployment-hardened version**
-- Implementing guardrails:
-  - Input validation (prevent prompt injection, filter inappropriate content)
-  - Output filtering (age-appropriate explanations)
-  - Rate limiting per user
-- Adding comprehensive caching:
-  - Semantic caching for common tutoring explanations
-  - Prompt caching for system prompts
-  - CacheBackedEmbeddings for material indexing
-  - Response caching for flashcard generation
-- Cost optimization across the entire system
-- Performance tuning (latency, throughput)
+- **Content guardrails**:
+  - Input validation (prompt injection detection, inappropriate content filtering)
+  - Output filtering (age-appropriate explanations, educational safety)
+  - LangGraph guardrail node implementations
+- **Comprehensive caching**:
+  - **Semantic response cache**: Cache similar queries using embedding similarity (not just exact matches)
+  - **Prompt caching**: Provider-specific implementations (Anthropic's cache, OpenAI's caching)
+  - **CacheBackedEmbeddings**: Avoid re-embedding unchanged documents
+- **Cost analytics dashboard**: Token usage tracking, cost attribution by feature, budget alerts
+- **Production checklist UI**: Readiness status across security, performance, monitoring categories
+- Performance tuning (latency, throughput optimization)
 - Security hardening (authentication, authorization, input validation)
 - Final monitoring and alerting setup
 - Load testing under production conditions
