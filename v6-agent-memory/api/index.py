@@ -11,18 +11,23 @@ New in v6:
 - Custom memory store for user preferences/struggles
 """
 
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables FIRST (before any imports that need them)
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(env_path)
+
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
-from pathlib import Path
 import os
 import re
 import random
 import threading
 from typing import Optional
-from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
 # LangChain imports
@@ -38,7 +43,7 @@ from langgraph.graph import StateGraph, END
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
 
-# Local imports
+# Local imports (after dotenv loaded)
 from .state import StudyBuddyState, create_initial_state
 from .agents.tutor import create_tutor_agent, tutor_explain
 from .agents.card_generator import (
@@ -70,10 +75,6 @@ from .services.flashcard_cache import (
 from .services.spaced_repetition import quality_from_button
 from .services.memory_store import MemoryStore
 from .services.background_generator import BackgroundGenerator, prefetch_status
-
-# Load environment variables from parent directory
-env_path = Path(__file__).parent.parent / ".env"
-load_dotenv(env_path)
 
 # Check if running on Vercel
 IS_VERCEL = os.environ.get("VERCEL") == "1"
