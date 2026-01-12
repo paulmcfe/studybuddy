@@ -600,15 +600,12 @@ def get_status():
     if IS_VERCEL:
         ensure_initialized()
 
-    # Import here to get current values
-    from .database.connection import DB_PATH, POSTGRES_URL
-
     return {
         "indexing_complete": indexing_status["done"],
         "documents_indexed": indexing_status["count"],
         "chunks_in_db": indexing_status["chunks"],
         "current_file": indexing_status["current_file"],
-        "db_backend": "postgres" if POSTGRES_URL else ("memory" if DB_PATH == ":memory:" else "sqlite"),
+        "db_backend": "postgres",
     }
 
 

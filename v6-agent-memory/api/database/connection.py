@@ -1,40 +1,30 @@
 """Database connection and session management."""
 
 import os
-from pathlib import Path
 from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from .models import Base, User
 
-# Environment detection
+# PostgreSQL connection (required)
 POSTGRES_URL = os.environ.get("POSTGRES_URL")
 
-# Database configuration:
-# 1. Vercel Postgres if POSTGRES_URL is set
-# 2. Local SQLite file for development
+if not POSTGRES_URL:
+    raise RuntimeError(
+        "POSTGRES_URL environment variable is required. "
+        "Set it in your .env file, e.g.: POSTGRES_URL=postgresql://localhost/studybuddy"
+    )
 
-if POSTGRES_URL:
-    # Vercel Postgres (fix URL scheme for SQLAlchemy 2.0)
-    DATABASE_URL = POSTGRES_URL.replace("postgres://", "postgresql://", 1)
-    engine = create_engine(
-        DATABASE_URL,
-        pool_pre_ping=True,  # Verify connections before using
-        pool_size=5,  # Keep pool small for serverless
-        max_overflow=10,
-    )
-    DB_PATH = "postgres"
-    print("Using Vercel Postgres")
-else:
-    # Local development: SQLite file
-    DB_PATH = Path(__file__).parent.parent.parent / "studybuddy.db"
-    DATABASE_URL = f"sqlite:///{DB_PATH}"
-    engine = create_engine(
-        DATABASE_URL,
-        connect_args={"check_same_thread": False},
-    )
-    print(f"Using local SQLite: {DB_PATH}")
+# Fix URL scheme for SQLAlchemy 2.0 (Vercel uses postgres://)
+DATABASE_URL = POSTGRES_URL.replace("postgres://", "postgresql://", 1)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,  # Verify connections before using
+    pool_size=5,
+    max_overflow=10,
+)
+print(f"Using PostgreSQL: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else 'localhost'}")
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -44,7 +34,7 @@ def init_database():
     """Create all tables if they don't exist and ensure default user exists."""
     # Create tables
     Base.metadata.create_all(bind=engine)
-    print(f"Database initialized at {DB_PATH}")
+    print("Database initialized")
 
     # Ensure default user exists
     db = SessionLocal()
