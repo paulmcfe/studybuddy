@@ -7,7 +7,7 @@ LangGraph is a framework for building stateful, multi-step agent applications. I
 ## Installation
 
 ```bash
-pip install langgraph langgraph-supervisor
+uv pip install langgraph langgraph-supervisor
 ```
 
 ## Core Concepts

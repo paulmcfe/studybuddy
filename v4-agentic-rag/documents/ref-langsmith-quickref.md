@@ -7,7 +7,7 @@ LangSmith is Anthropic's platform for debugging, testing, evaluating, and monito
 ## Setup
 
 ```bash
-pip install langsmith
+uv pip install langsmith
 ```
 
 ```python

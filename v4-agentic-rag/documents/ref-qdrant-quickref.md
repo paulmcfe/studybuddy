@@ -7,7 +7,7 @@ Qdrant is an open-source vector database optimized for similarity search. It sup
 ## Installation
 
 ```bash
-pip install qdrant-client langchain-qdrant
+uv pip install qdrant-client langchain-qdrant
 ```
 
 ## Client Setup

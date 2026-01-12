@@ -69,7 +69,7 @@ Or with pip:
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -e .
+uv pip install -e .
 ```
 
 ### 3. Configure environment variables

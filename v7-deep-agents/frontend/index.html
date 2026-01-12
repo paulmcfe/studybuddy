@@ -179,7 +179,7 @@
         }
 
         .form-group {
-            margin-bottom: 24px;
+            margin-bottom: 1rem;
         }
 
         .form-label {
@@ -989,14 +989,16 @@
 
         .curriculum-btn {
             width: 100%;
-            padding: 0.75rem 1rem;
-            font-size: 0.9rem;
+            padding: 1.125rem;
+            font-size: 1rem;
+            font-weight: 600;
             border: 2px solid var(--color-primary);
             background: transparent;
             color: var(--color-primary);
-            border-radius: var(--radius-sm);
+            border-radius: var(--radius-md);
             cursor: pointer;
             transition: background 0.2s, color 0.2s;
+            margin-bottom: 0.75rem;
         }
 
         .curriculum-btn:hover {
@@ -1197,7 +1199,7 @@
                     Studying</button>
                 <div class="or-divider">or</div>
                 <button type="button" class="curriculum-btn" id="sidebarCurriculumBtn"
-                    onclick="openCurriculumModal()">📚 Create Learning Path</button>
+                    onclick="openCurriculumModal()">Create Learning Path</button>
                 <button type="button" class="chat-link" onclick="openChat()">💬 Just want to chat?</button>
 
                 <div class="sidebar-status" id="sidebarSetupStatus" aria-live="polite">
@@ -1263,7 +1265,7 @@
                 <button type="button" class="start-btn" id="startBtn" onclick="startStudying()">Start Studying</button>
                 <div class="or-divider">or</div>
                 <button type="button" class="curriculum-btn" id="curriculumBtn"
-                    onclick="openCurriculumModal()">📚 Create Learning Path</button>
+                    onclick="openCurriculumModal()">Create Learning Path</button>
                 <button type="button" class="chat-link" onclick="openChat()">💬 Just want to chat?</button>
 
                 <div class="home-status" id="homeStatus" aria-live="polite">
@@ -1319,7 +1321,7 @@
     <div class="chat-panel curriculum-panel" id="curriculumPanel" role="dialog" aria-modal="true"
         aria-labelledby="curriculumTitle" aria-hidden="true" inert>
         <div class="chat-header">
-            <h2 id="curriculumTitle" class="chat-title">📚 Create Learning Path</h2>
+            <h2 id="curriculumTitle" class="chat-title">Create Learning Path</h2>
             <button type="button" class="chat-close" onclick="closeCurriculumModal()" aria-label="Close">✕ Close</button>
         </div>
         <div class="curriculum-body">
@@ -1538,15 +1540,15 @@
         function updateCurriculumUI() {
             // Update both curriculum buttons (sidebar and home screen)
             if (state.activeCurriculum) {
-                $('curriculumBtn').textContent = '📚 Resume Learning Path';
-                $('sidebarCurriculumBtn').textContent = '📚 Resume Learning Path';
-                $('curriculumTitle').textContent = '📚 Resume Learning Path';
+                $('curriculumBtn').textContent = 'Resume Learning Path';
+                $('sidebarCurriculumBtn').textContent = 'Resume Learning Path';
+                $('curriculumTitle').textContent = 'Resume Learning Path';
                 // Show curriculum info in sidebar setup area
                 $('sidebarSetupStatusMessage').textContent = `Learning: ${state.activeCurriculum.goal}`;
             } else {
-                $('curriculumBtn').textContent = '📚 Create Learning Path';
-                $('sidebarCurriculumBtn').textContent = '📚 Create Learning Path';
-                $('curriculumTitle').textContent = '📚 Create Learning Path';
+                $('curriculumBtn').textContent = 'Create Learning Path';
+                $('sidebarCurriculumBtn').textContent = 'Create Learning Path';
+                $('curriculumTitle').textContent = 'Create Learning Path';
                 $('sidebarSetupStatusMessage').textContent = '';
             }
         }

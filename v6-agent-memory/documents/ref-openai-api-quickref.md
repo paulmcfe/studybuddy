@@ -7,7 +7,7 @@ OpenAI provides APIs for language models (GPT-5, GPT-5-nano), embeddings, and ot
 ## Installation
 
 ```bash
-pip install openai
+uv pip install openai
 ```
 
 ## Client Setup

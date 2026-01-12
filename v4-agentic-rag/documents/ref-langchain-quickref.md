@@ -8,20 +8,20 @@ LangChain is a framework for building applications with large language models. V
 
 ```bash
 # Core packages
-pip install langchain langchain-core
+uv pip install langchain langchain-core
 
 # Provider integrations
-pip install langchain-openai      # OpenAI models
-pip install langchain-anthropic   # Anthropic/Claude models
-pip install langchain-cohere      # Cohere models
+uv pip install langchain-openai      # OpenAI models
+uv pip install langchain-anthropic   # Anthropic/Claude models
+uv pip install langchain-cohere      # Cohere models
 
 # Vector store integrations
-pip install langchain-qdrant      # Qdrant
-pip install langchain-pinecone    # Pinecone
-pip install langchain-chroma      # Chroma
+uv pip install langchain-qdrant      # Qdrant
+uv pip install langchain-pinecone    # Pinecone
+uv pip install langchain-chroma      # Chroma
 
 # Community integrations
-pip install langchain-community   # Document loaders, etc.
+uv pip install langchain-community   # Document loaders, etc.
 ```
 
 ## Chat Models

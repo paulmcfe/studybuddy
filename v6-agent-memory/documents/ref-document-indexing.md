@@ -7,7 +7,7 @@ Index documents into a vector database for RAG retrieval.
 ## Prerequisites
 
 ```bash
-pip install langchain langchain-openai langchain-qdrant qdrant-client
+uv pip install langchain langchain-openai langchain-qdrant qdrant-client
 ```
 
 ## Quick Start

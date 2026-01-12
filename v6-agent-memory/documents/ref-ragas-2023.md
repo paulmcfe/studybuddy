@@ -93,7 +93,7 @@ Context Recall = (Ground truth claims in context) / (Total ground truth claims)
 ### Installation
 
 ```bash
-pip install ragas
+uv pip install ragas
 ```
 
 ### Basic Evaluation
