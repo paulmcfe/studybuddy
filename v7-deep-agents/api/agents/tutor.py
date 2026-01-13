@@ -36,6 +36,7 @@ def tutor_explain(
     query: str,
     context: str = "",
     card_context: dict | None = None,
+    memory_context: str = "",
 ) -> str:
     """
     Have the Tutor explain a concept.
@@ -45,12 +46,23 @@ def tutor_explain(
         query: The student's question
         context: Retrieved context from knowledge base
         card_context: Current flashcard context if studying a card
+        memory_context: User's learning history (struggles, preferences)
 
     Returns:
         The Tutor's explanation
     """
     # Build the system message
     system_content = TUTOR_PROMPT
+
+    # Add memory context if present (struggles, preferences from past sessions)
+    if memory_context:
+        system_content += f"""
+
+Student learning context:
+{memory_context}
+
+Use this context to personalize your explanation. If the student has struggled
+with related concepts before, be extra clear on those points."""
 
     # Add card context if present
     if card_context:

@@ -18,6 +18,7 @@ from sqlalchemy import func, or_
 
 from ..database.models import CardReview, Flashcard, User
 from ..services.spaced_repetition import calculate_sm2, get_priority_score
+from ..services.memory_store import MemoryStore
 
 SCHEDULER_PROMPT = """You are StudyBuddy's Scheduler, responsible for
 optimizing the user's learning through spaced repetition.
@@ -290,6 +291,25 @@ def get_study_stats(db: Session, user_id: str = "default") -> dict:
         for topic, stats in topic_stats.items()
         if stats["total"] >= 3 and stats["correct"] / stats["total"] < 0.6
     ]
+
+    # Persist struggle areas to memory for cross-mode integration
+    # This allows tutoring to know what the user struggles with in practice
+    memory_store = MemoryStore(db)
+    for topic in struggle_topics:
+        stats = topic_stats[topic]
+        accuracy = stats["correct"] / stats["total"]
+        memory_store.put(
+            user_id=user_id,
+            namespace="struggles",
+            key=topic.lower().replace(" ", "_"),
+            value={
+                "topic": topic,
+                "accuracy": round(accuracy, 2),
+                "total_reviews": stats["total"],
+                "correct_reviews": stats["correct"],
+                "identified_at": datetime.utcnow().isoformat(),
+            },
+        )
 
     # Unique cards studied
     unique_cards = len(set(r.flashcard_id for r, _ in reviews_with_cards))

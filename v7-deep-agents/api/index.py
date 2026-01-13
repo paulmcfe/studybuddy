@@ -84,7 +84,7 @@ from .services.flashcard_cache import (
     get_cache_stats,
 )
 from .services.spaced_repetition import quality_from_button
-from .services.memory_store import MemoryStore
+from .services.memory_store import MemoryStore, extract_memories_from_conversation
 from .services.background_generator import BackgroundGenerator, prefetch_status
 from .services.curriculum_service import (
     create_curriculum as create_curriculum_record,
@@ -284,6 +284,35 @@ def search_materials(query: str, k: int = 4) -> str:
     return "\n\n---\n\n".join(formatted)
 
 
+def format_memories_for_tutor(struggles: list[dict], preferences: list[dict]) -> str:
+    """Format user memories into context string for tutor.
+
+    Takes memories from the MemoryStore and formats them into a string
+    that can be injected into the tutor's system prompt.
+
+    Args:
+        struggles: List of struggle area memories
+        preferences: List of preference memories
+
+    Returns:
+        Formatted string for tutor context, or empty string if no memories
+    """
+    parts = []
+
+    if struggles:
+        struggle_topics = [s["value"].get("topic", s["key"]) for s in struggles]
+        parts.append(f"Topics this student has struggled with: {', '.join(struggle_topics)}")
+
+    if preferences:
+        for pref in preferences:
+            if pref["key"] == "explanation_style":
+                parts.append(f"Preferred explanation style: {pref['value']}")
+            elif pref["key"] == "background":
+                parts.append(f"Student background: {pref['value']}")
+
+    return "\n".join(parts) if parts else ""
+
+
 # Initialize background generator now that search_materials is defined
 background_generator = BackgroundGenerator(
     card_generator_llm=card_generator_llm,
@@ -316,15 +345,38 @@ def supervisor_node(state: StudyBuddyState) -> dict:
 
 
 def tutor_node(state: StudyBuddyState) -> dict:
-    """Have the Tutor explain a concept."""
+    """Have the Tutor explain a concept with personalized memory context."""
     query = state.get("query", "")
     card_context = state.get("card_context")
+    user_id = state.get("user_id", "default")
 
-    # Search for relevant context
+    # Load user memories to personalize the explanation
+    with get_db() as db:
+        memory_store = MemoryStore(db)
+        struggles = memory_store.search(user_id, namespace="struggles", limit=5)
+        preferences = memory_store.search(user_id, namespace="preferences", limit=3)
+
+    # Format memories for context injection
+    memory_context = format_memories_for_tutor(struggles, preferences)
+
+    # Search for relevant content from knowledge base
     context = search_materials(query)
 
-    # Get the explanation
-    explanation = tutor_explain(tutor_llm, query, context, card_context)
+    # Get the explanation with memory context
+    explanation = tutor_explain(tutor_llm, query, context, card_context, memory_context)
+
+    # Extract memorable insights from this conversation (synchronous)
+    conversation_text = f"Student asked: {query}\n\nTutor explained: {explanation}"
+    with get_db() as db:
+        memory_store = MemoryStore(db)
+        memories = extract_memories_from_conversation(conversation_text, tutor_llm)
+        for memory in memories:
+            memory_store.put(
+                user_id=user_id,
+                namespace=memory.get("namespace", "background"),
+                key=memory.get("key", "unknown"),
+                value=memory.get("value", {}),
+            )
 
     return {"response": explanation, "current_topic": query[:50]}
 

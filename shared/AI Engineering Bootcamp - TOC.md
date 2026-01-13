@@ -290,7 +290,7 @@
 ## Building StudyBuddy v5
 - Multi-agent architecture with supervisor pattern using langgraph-supervisor
 - Agent team:
-  - **Tutor Agent:** Explains concepts conversationally (gpt-5-nano)
+  - **Tutor Agent:** Explains concepts conversationally (gpt-4o)
   - **Card Generator Agent:** Creates flashcards from explanations and materials (gpt-4o-mini)
   - **Quality Checker Agent:** Validates card clarity and usefulness
   - **Learning Coordinator (Supervisor):** Orchestrates all agents
@@ -673,12 +673,24 @@
 - Learning analytics
 - Session management
 
+## Persistent Vector Storage with pgvector
+- The problem with in-memory vector stores (re-indexing on every restart)
+- Why persistence matters when users upload their own documents
+- pgvector: adding vector capabilities to PostgreSQL
+- Migrating from Qdrant in-memory to pgvector
+- Program-scoped vector collections (isolating each learning program's documents)
+- Trade-offs: pgvector vs. dedicated vector databases
+
 ## Building StudyBuddy v10
 - **Generalizing StudyBuddy to learn ANY subject** (the major feature):
   - **Document upload**: Upload PDF, Markdown, or text files to create custom knowledge bases
   - **Custom topic lists**: Upload or AI-generate topic-list.md for any subject
   - **Learning program management**: Create, switch between, and manage multiple programs (Spanish, History, Cooking, etc.)
   - **AI curriculum generation**: "Create a learning program for [topic]" generates complete curriculum
+- **Persistent vector storage with pgvector**:
+  - Moving from in-memory Qdrant to PostgreSQL-backed vectors
+  - No more re-indexing on restart—uploaded documents persist
+  - Per-program vector isolation using metadata filtering
 - Building proper full-stack UI:
   - **Progress dashboard** with charts showing learning progress across all programs
   - Program selector and management interface

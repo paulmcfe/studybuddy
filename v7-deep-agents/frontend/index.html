@@ -903,6 +903,64 @@
             .sidebar .change-chapter-link:hover {
                 color: var(--color-primary);
             }
+
+            /* Focus Areas (struggle topics from practice) */
+            .focus-areas {
+                background: var(--color-card);
+                border-radius: var(--radius-sm);
+                padding: 0.75rem;
+                margin-top: 1rem;
+                border-left: 3px solid var(--color-warning, #f59e0b);
+            }
+
+            .focus-areas-header {
+                margin-bottom: 0.25rem;
+            }
+
+            .focus-areas-title {
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: var(--color-text);
+                text-transform: uppercase;
+            }
+
+            .focus-areas-list {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+
+            .focus-areas-list li {
+                font-size: 0.8125rem;
+                color: var(--color-text-muted);
+                padding: 0.25rem 0;
+                border-bottom: 1px solid var(--color-border);
+            }
+
+            .focus-areas-list li:last-child {
+                border-bottom: none;
+            }
+
+            .focus-areas-hint {
+                font-size: 0.6875rem;
+                color: var(--color-text-hint);
+                margin-bottom: 0.5rem;
+                font-style: italic;
+            }
+
+            .focus-area-topic {
+                margin-bottom: 0.125rem;
+            }
+
+            .focus-area-chat-link {
+                display: block;
+                font-size: 0.6875rem;
+                color: var(--color-primary);
+            }
+
+            .focus-area-chat-link:hover {
+                text-decoration: underline;
+            }
         }
 
         /* Hide sidebar on mobile */
@@ -1271,6 +1329,15 @@
                     <span id="sidebarStatusMessage"></span>
                 </div>
             </div>
+
+            <!-- Focus Areas (struggle areas from practice mode) -->
+            <div class="focus-areas" id="focusAreasSection" style="display: none;">
+                <div class="focus-areas-header">
+                    <span class="focus-areas-title">Focus Areas</span>
+                </div>
+                <div class="focus-areas-hint">Topics where you need extra practice</div>
+                <ul class="focus-areas-list" id="focusAreasList"></ul>
+            </div>
         </aside>
 
         <!-- Main Content Area -->
@@ -1569,6 +1636,8 @@
             checkIndexingStatus();
             // Load any saved curriculum from localStorage
             loadSavedCurriculum();
+            // Load focus areas (struggle topics) from study stats
+            loadFocusAreas();
         }
 
         function loadSavedCurriculum() {
@@ -1582,6 +1651,34 @@
                     localStorage.removeItem('activeCurriculum');
                 }
             }
+        }
+
+        async function loadFocusAreas() {
+            // Fetch study stats to get struggle areas (focus areas)
+            try {
+                const response = await fetch('/api/stats');
+                if (response.ok) {
+                    const stats = await response.json();
+                    const focusAreas = stats.struggle_areas || [];
+
+                    if (focusAreas.length > 0) {
+                        $('focusAreasSection').style.display = 'block';
+                        $('focusAreasList').innerHTML = focusAreas
+                            .map(topic => `<li><div class="focus-area-topic">${topic}</div><a href="#" class="focus-area-chat-link" onclick="chatAboutTopic('${topic.replace(/'/g, "\\'")}'); return false;">Chat about this</a></li>`)
+                            .join('');
+                    } else {
+                        $('focusAreasSection').style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load focus areas:', e);
+            }
+        }
+
+        function chatAboutTopic(topic) {
+            openChat();
+            $('chatInput').value = `Help me understand ${topic}`;
+            $('chatInput').focus();
         }
 
         function updateCurriculumUI() {
@@ -2114,6 +2211,8 @@
                             ? "You'll see this card again in 1 day"
                             : `You'll see this card again in ${days} days`;
                         showStatus(msg);
+                        // Refresh focus areas in case struggle areas changed
+                        loadFocusAreas();
                     }
                 } catch (e) {
                     console.error('Failed to record review:', e);
