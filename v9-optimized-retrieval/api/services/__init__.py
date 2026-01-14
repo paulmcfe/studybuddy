@@ -21,15 +21,12 @@ from .curriculum_service import (
     get_recent_sessions,
     calculate_days_since_last_session,
 )
-# v9: Advanced retrieval and indexing
+# v9: Advanced indexing (retrieval classes imported directly where needed)
 from .indexing import chunk_reference_document, chunk_all_documents
-from .retrieval import (
-    HybridRetriever,
-    RerankedRetriever,
-    RAGFusionRetriever,
-    AdaptiveRetriever,
-    SimpleRetriever,
-)
+
+# Note: Retrieval classes (HybridRetriever, RerankedRetriever, etc.) should be
+# imported directly from api.services.retrieval where needed, to avoid import
+# issues with optional dependencies on serverless platforms.
 
 __all__ = [
     "calculate_sm2",
@@ -52,12 +49,7 @@ __all__ = [
     "end_study_session",
     "get_recent_sessions",
     "calculate_days_since_last_session",
-    # v9: Advanced retrieval
+    # v9: Advanced indexing
     "chunk_reference_document",
     "chunk_all_documents",
-    "HybridRetriever",
-    "RerankedRetriever",
-    "RAGFusionRetriever",
-    "AdaptiveRetriever",
-    "SimpleRetriever",
 ]
