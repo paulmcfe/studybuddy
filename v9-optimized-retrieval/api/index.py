@@ -981,8 +981,21 @@ def get_status():
 @app.get("/api/chapters")
 def get_chapters():
     """Get all chapters parsed from topic-list.md."""
-    chapters = parse_topic_list()
-    return {"chapters": chapters}
+    try:
+        chapters = parse_topic_list()
+        return {"chapters": chapters}
+    except Exception as e:
+        # Return error details for debugging
+        topic_file = Path(__file__).parent.parent / "documents" / "topic-list.md"
+        return {
+            "chapters": [],
+            "error": str(e),
+            "debug": {
+                "file_path": str(topic_file),
+                "exists": topic_file.exists(),
+                "parent_exists": topic_file.parent.exists(),
+            }
+        }
 
 
 @app.post("/api/chat", response_model=ChatResponse)
