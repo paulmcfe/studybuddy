@@ -2,17 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "v7-deep-agents/api/index.py",
+      "src": "v9-optimized-retrieval/api/index.py",
       "use": "@vercel/python"
     },
     {
-      "src": "v7-deep-agents/frontend/**",
+      "src": "v9-optimized-retrieval/frontend/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/v7-deep-agents/api/index.py" },
-    { "src": "/(.*)", "dest": "/v7-deep-agents/frontend/$1" }
+    { "src": "/api/(.*)", "dest": "/v9-optimized-retrieval/api/index.py" },
+    { "src": "/(.*)", "dest": "/v9-optimized-retrieval/frontend/$1" }
   ],
   "git": {
     "deploymentEnabled": {

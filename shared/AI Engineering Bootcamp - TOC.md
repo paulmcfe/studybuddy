@@ -543,7 +543,7 @@
 
 # Chapter 9: Advanced Retrieval & Evaluation
 
-## Agentic RAG Evaluation (Condensed from original Chapter 10)
+## Agentic RAG Evaluation
 - Evaluation metrics for agentic RAG
 - RAGAS core metrics (faithfulness, relevance, context precision/recall)
 - Agent-specific metrics (tool usage, reasoning quality)
