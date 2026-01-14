@@ -11,11 +11,28 @@ import os
 import json
 from typing import Callable
 
-import cohere
 from langchain_community.retrievers import BM25Retriever
 from langchain_qdrant import QdrantVectorStore
 from langchain_openai import ChatOpenAI
 from langchain_core.documents import Document
+
+# Lazy import for Cohere (may not be available on all platforms)
+_cohere_module = None
+
+
+def _get_cohere_client(api_key: str):
+    """Lazy load Cohere client to avoid import errors on Vercel."""
+    global _cohere_module
+    if _cohere_module is None:
+        try:
+            import cohere
+            _cohere_module = cohere
+        except ImportError:
+            _cohere_module = False  # Mark as unavailable
+
+    if _cohere_module:
+        return _cohere_module.Client(api_key=api_key)
+    return None
 
 
 class HybridRetriever:
@@ -106,7 +123,7 @@ class RerankedRetriever:
         self.rerank_top_n = rerank_top_n
         api_key = os.getenv("COHERE_API_KEY")
         if api_key and api_key != "your_cohere_api_key_here":
-            self.cohere_client = cohere.Client(api_key=api_key)
+            self.cohere_client = _get_cohere_client(api_key)
         else:
             self.cohere_client = None
 

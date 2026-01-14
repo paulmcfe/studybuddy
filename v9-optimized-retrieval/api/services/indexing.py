@@ -4,10 +4,24 @@ Provides intelligent document chunking that respects markdown structure
 and uses embedding-based semantic boundaries for large sections.
 """
 
-from langchain_experimental.text_splitter import SemanticChunker
-from langchain_text_splitters import MarkdownHeaderTextSplitter
+from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
+
+# Lazy import for SemanticChunker (may not be available on all platforms)
+_semantic_chunker_class = None
+
+
+def _get_semantic_chunker_class():
+    """Lazy load SemanticChunker to avoid import errors on Vercel."""
+    global _semantic_chunker_class
+    if _semantic_chunker_class is None:
+        try:
+            from langchain_experimental.text_splitter import SemanticChunker
+            _semantic_chunker_class = SemanticChunker
+        except ImportError:
+            _semantic_chunker_class = False  # Mark as unavailable
+    return _semantic_chunker_class
 
 
 def chunk_reference_document(
@@ -46,29 +60,40 @@ def chunk_reference_document(
 
     header_chunks = header_splitter.split_text(content)
 
-    # Second pass: semantic chunking for large sections
-    semantic_chunker = SemanticChunker(
-        embeddings=embeddings,
-        breakpoint_threshold_type="percentile",
-        breakpoint_threshold_amount=semantic_threshold,
+    # Check if semantic chunking is available
+    SemanticChunker = _get_semantic_chunker_class()
+
+    # Fallback splitter for when semantic chunking is unavailable
+    fallback_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000, chunk_overlap=100, length_function=len
     )
 
     final_chunks = []
     for chunk in header_chunks:
         chunk_content = chunk.page_content
 
-        # If chunk is large, apply semantic chunking
+        # If chunk is large, apply semantic chunking (or fallback)
         if len(chunk_content) > large_section_threshold:
             try:
-                sub_chunks = semantic_chunker.create_documents([chunk_content])
+                if SemanticChunker:
+                    semantic_chunker = SemanticChunker(
+                        embeddings=embeddings,
+                        breakpoint_threshold_type="percentile",
+                        breakpoint_threshold_amount=semantic_threshold,
+                    )
+                    sub_chunks = semantic_chunker.create_documents([chunk_content])
+                else:
+                    # Fallback to recursive splitting
+                    sub_chunks = fallback_splitter.create_documents([chunk_content])
+
                 for sub in sub_chunks:
                     # Preserve header metadata from parent chunk
                     sub.metadata.update(chunk.metadata)
                     sub.metadata["source"] = source
                     final_chunks.append(sub)
             except Exception as e:
-                # Fall back to keeping the chunk as-is if semantic chunking fails
-                print(f"Semantic chunking failed for {source}: {e}")
+                # Fall back to keeping the chunk as-is if chunking fails
+                print(f"Chunking failed for {source}: {e}")
                 chunk.metadata["source"] = source
                 final_chunks.append(chunk)
         else:
