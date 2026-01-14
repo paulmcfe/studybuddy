@@ -99,7 +99,9 @@ from .services.curriculum_service import (
     end_study_session,
 )
 from .services.indexing import chunk_reference_document
-from .services.retrieval import AdaptiveRetriever, SimpleRetriever
+
+# Retrieval classes imported lazily to avoid import errors on Vercel
+# They are imported inside index_reference_guides() when actually needed
 
 # Check if running on Vercel
 IS_VERCEL = os.environ.get("VERCEL") == "1"
@@ -130,10 +132,11 @@ vector_store = QdrantVectorStore(
 indexed_documents: list = []
 
 # Adaptive retriever (initialized after indexing)
-adaptive_retriever: AdaptiveRetriever | None = None
+# Type is Any to avoid import at module level
+adaptive_retriever = None
 
 # Simple retriever for baseline comparisons
-simple_retriever: SimpleRetriever | None = None
+simple_retriever = None
 
 # ============== Document Indexing ==============
 
@@ -828,16 +831,21 @@ def ensure_initialized():
 
         # Initialize advanced retrievers (v9)
         if indexed_documents:
-            print("Initializing adaptive retriever...")
-            # Use the tutor LLM for query expansion in RAG-Fusion
-            retriever_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-            adaptive_retriever = AdaptiveRetriever(
-                vector_store=vector_store,
-                documents=indexed_documents,
-                llm=retriever_llm,
-            )
-            simple_retriever = SimpleRetriever(vector_store)
-            print("Advanced retrieval ready (hybrid + reranking + RAG-Fusion)")
+            try:
+                from .services.retrieval import AdaptiveRetriever, SimpleRetriever
+                print("Initializing adaptive retriever...")
+                # Use the tutor LLM for query expansion in RAG-Fusion
+                retriever_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+                adaptive_retriever = AdaptiveRetriever(
+                    vector_store=vector_store,
+                    documents=indexed_documents,
+                    llm=retriever_llm,
+                )
+                simple_retriever = SimpleRetriever(vector_store)
+                print("Advanced retrieval ready (hybrid + reranking + RAG-Fusion)")
+            except ImportError as e:
+                print(f"Advanced retrieval unavailable (missing dependencies): {e}")
+                print("Falling back to simple vector search")
 
         # Build graph
         studybuddy = build_studybuddy_graph()
