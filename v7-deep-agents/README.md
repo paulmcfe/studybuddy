@@ -1,23 +1,24 @@
-# StudyBuddy v6 - Agent Memory and Spaced Repetition
+# StudyBuddy v7 - Deep Agents with Planning and Delegation
 
-An intelligent AI Engineering tutor with persistent memory, flashcard caching, and spaced repetition powered by the SM-2 algorithm.
+An intelligent AI Engineering tutor with deep research capabilities, multi-step planning, and autonomous task delegation.
 
-## What's New in v6
+## What's New in v7
 
-StudyBuddy v6 transforms from an ephemeral multi-agent system (v5) into a truly persistent learning companion:
+StudyBuddy v7 transforms from a reactive multi-agent system (v6) into a proactive deep agent:
 
-- **SQLite Persistence**: All data survives restarts in `studybuddy.db`
-- **Content-Addressed Flashcard Caching**: Same topic + context = instant results (no regeneration)
-- **SM-2 Spaced Repetition**: Optimal review scheduling based on your performance
-- **Scheduler Agent**: New agent that manages due cards and learning statistics
-- **Custom Memory Store**: Remember user preferences, struggles, and goals across sessions
+- **Deep Research Agent**: Autonomous research with scope → research → synthesize workflow
+- **Planning Capabilities**: Multi-step task decomposition and execution
+- **Focus Areas**: User-configurable learning priorities that guide tutoring
+- **Markdown Support**: Rich formatting in tutor responses
+- **Enhanced Mobile UI**: Improved responsive design
 
 ## Features
 
 - **Multi-Agent Coordination**: Supervisor routes to Tutor, Card Generator, Quality Checker, or Scheduler
+- **Deep Research**: Autonomous information gathering and synthesis
 - **Persistent Flashcards**: Generated cards are cached and reused
-- **Smart Review Scheduling**: Cards you struggle with come back sooner
-- **Learning Analytics**: Track your progress, identify struggle areas
+- **Smart Review Scheduling**: SM-2 spaced repetition algorithm
+- **Focus Area Guidance**: Personalized tutoring based on learning goals
 - **LangSmith Tracing**: Full observability of agent interactions
 
 ## Architecture
@@ -32,9 +33,10 @@ StudyBuddy v6 transforms from an ephemeral multi-agent system (v5) into a truly 
          ▼         ▼       ▼       ▼         ▼
     ┌────────┐ ┌───────┐ ┌───────┐ ┌─────────┐
     │ Tutor  │ │ Card  │ │Quality│ │Scheduler│
-    └───┬────┘ │  Gen  │ │Checker│ └─────────┘
-        │      └───┬───┘ └───────┘      │
+    │ (Deep) │ │  Gen  │ │Checker│ └─────────┘
+    └───┬────┘ └───┬───┘ └───────┘      │
         │          │          ▲         │
+        │   Planning & Research         │
         │          └──────────┘         │
         └───────────────────────────────┘
                            │
@@ -55,21 +57,13 @@ StudyBuddy v6 transforms from an ephemeral multi-agent system (v5) into a truly 
 ### 1. Navigate to the directory
 
 ```bash
-cd studybuddy/v6-agent-memory
+cd studybuddy/v7-deep-agents
 ```
 
 ### 2. Create virtual environment
 
 ```bash
 uv sync
-```
-
-Or with pip:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-uv pip install -e .
 ```
 
 ### 3. Configure environment variables
@@ -85,12 +79,6 @@ LANGSMITH_API_KEY=lsv2_your-key-here
 
 ```bash
 uv run uvicorn api.index:app --reload --port 8000
-```
-
-Or without uv:
-
-```bash
-uvicorn api.index:app --reload --port 8000
 ```
 
 ### 5. Open the app
@@ -109,7 +97,24 @@ POST /api/chat
 }
 ```
 
-Response includes reply, cards, cache_hit status, due_cards, and study_stats.
+Response includes reply (with markdown), cards, cache_hit status, due_cards, and study_stats.
+
+### Focus Areas (NEW in v7)
+
+```
+GET /api/focus-areas
+```
+
+Returns current focus areas for personalized learning.
+
+```
+POST /api/focus-areas
+{
+    "areas": ["RAG fundamentals", "Vector databases", "Prompt engineering"]
+}
+```
+
+Sets focus areas to guide tutoring responses.
 
 ### Flashcard Generation
 
@@ -122,15 +127,13 @@ POST /api/flashcard
 }
 ```
 
-### Get Due Cards (NEW in v6)
+### Get Due Cards
 
 ```
 GET /api/due-cards?limit=10&include_new=true
 ```
 
-Returns cards due for review plus new cards to learn.
-
-### Record Review (NEW in v6)
+### Record Review
 
 ```
 POST /api/review
@@ -140,34 +143,18 @@ POST /api/review
 }
 ```
 
-Quality ratings (SM-2):
-- 0: Complete blackout
-- 1: Incorrect but recognized answer
-- 2: Incorrect but seemed easy
-- 3: Correct with difficulty
-- 4: Correct after hesitation
-- 5: Perfect recall
+Quality ratings (SM-2): 0-5 scale from complete blackout to perfect recall.
 
-### Get Statistics (NEW in v6)
+### Get Statistics
 
 ```
 GET /api/stats
 ```
 
-Returns total reviews, due cards, topic performance, and struggle areas.
-
-### Cache Statistics (NEW in v6)
-
-```
-GET /api/cache-stats
-```
-
-Returns flashcard cache hit statistics.
-
 ## Project Structure
 
 ```
-v6-agent-memory/
+v7-deep-agents/
 ├── api/
 │   ├── __init__.py
 │   ├── index.py              # FastAPI app + multi-agent graph
@@ -178,11 +165,11 @@ v6-agent-memory/
 │   │   └── connection.py     # Database setup
 │   ├── agents/
 │   │   ├── __init__.py
-│   │   ├── tutor.py
+│   │   ├── tutor.py          # Deep research tutor
 │   │   ├── card_generator.py
 │   │   ├── quality_checker.py
 │   │   ├── supervisor.py
-│   │   └── scheduler.py      # NEW: Spaced repetition
+│   │   └── scheduler.py
 │   └── services/
 │       ├── __init__.py
 │       ├── flashcard_cache.py
@@ -190,52 +177,33 @@ v6-agent-memory/
 │       └── memory_store.py
 ├── documents/
 ├── frontend/
-├── studybuddy.db             # SQLite database (created at runtime)
+├── studybuddy.db
 ├── .env
 ├── pyproject.toml
 └── README.md
 ```
 
-## Database Schema
+## Differences from v6
 
-- **users**: User profiles and preferences
-- **memories**: Learning preferences, struggles, goals
-- **flashcards**: Cached flashcards with content hashes
-- **card_reviews**: SM-2 spaced repetition state per user/card
+| Aspect | v6 | v7 |
+|--------|----|----|
+| Tutor capabilities | Reactive responses | Deep research & planning |
+| Focus areas | None | User-configurable |
+| Response format | Plain text | Markdown support |
+| Mobile UI | Basic | Enhanced responsive |
 
 ## LangSmith Tracing
 
-View detailed traces at [smith.langchain.com](https://smith.langchain.com) in the "studybuddy-v6" project.
-
-## Differences from v5
-
-| Aspect | v5 | v6 |
-|--------|----|----|
-| Persistence | None (in-memory) | SQLite database |
-| Agent count | 4 | 5 (+ Scheduler) |
-| Flashcard caching | None | Content-addressed |
-| Review scheduling | None | SM-2 algorithm |
-| User memory | None | Custom SQLAlchemy store |
-
-## Troubleshooting
-
-**"Agent still initializing"**
-- Wait for indexing to complete (watch terminal output)
-
-**Database errors**
-- Delete `studybuddy.db` and restart to recreate tables
-
-**No due cards showing**
-- Generate some flashcards first, then they'll be scheduled for review
+View detailed traces at [smith.langchain.com](https://smith.langchain.com) in the "studybuddy-v7" project.
 
 ## Cost Considerations
 
-StudyBuddy v6 uses multiple LLM calls per request:
-- Supervisor: gpt-5-nano (routing decision)
-- Tutor: gpt-5-nano (explanations)
+StudyBuddy v7 uses multiple LLM calls per request:
+- Supervisor: gpt-4o-mini (routing decision)
+- Tutor: gpt-4o-mini (explanations with deep research)
 - Card Generator: gpt-4o-mini (flashcard creation)
-- Quality Checker: gpt-5-nano (validation)
-- Scheduler: gpt-5-nano (recommendations)
+- Quality Checker: gpt-4o-mini (validation)
+- Scheduler: gpt-4o-mini (recommendations)
 
 Flashcard caching significantly reduces costs for repeated topic requests.
 
