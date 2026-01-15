@@ -1,6 +1,11 @@
 # Project Specific
 uv.lock
 dev-docs/
+uploads/
+
+# Node.js (v10 frontend)
+node_modules/
+dist/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
