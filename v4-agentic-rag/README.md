@@ -37,6 +37,7 @@ Query --> [Analyze] --> [Retrieve] --> [Evaluate] --> [Generate] --> Response
 ## Prerequisites
 
 - Python 3.12+
+- Node.js 18+
 - OpenAI API key
 - LangSmith API key (optional, for tracing)
 
@@ -48,43 +49,30 @@ Query --> [Analyze] --> [Retrieve] --> [Evaluate] --> [Generate] --> Response
 cd studybuddy/v4-agentic-rag
 ```
 
-### 2. Create virtual environment
+### 2. Set up the backend
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
+# Create .env file
+echo "OPENAI_API_KEY=your-key-here" > .env
 
-Or with uv:
-
-```bash
+# Create virtual environment and install dependencies
 uv sync
 ```
 
-### 3. Configure environment variables
+### 3. Set up the frontend
 
-Create or update `.env`:
-
+```bash
+cd frontend
+npm install
+cd ..
 ```
-OPENAI_API_KEY=sk-your-key-here
-LANGSMITH_API_KEY=lsv2_your-key-here
-```
 
-### 4. Run the server
+### 4. Run the app (two terminals)
 
+**Terminal 1 - Backend:**
 ```bash
 uv run uvicorn api.index:app --reload --port 8000
 ```
-
-Or without uv:
-
-```bash
-uvicorn api.index:app --reload --port 8000
-```
-
-### 5. Open the app
-
-Visit `http://localhost:8000` in your browser.
 
 You'll see indexing progress in the terminal:
 ```
@@ -97,6 +85,16 @@ Total: 847 chunks indexed from 33 guides
 Parsed 14 chapters from topic-list.md
 Agent ready!
 ```
+
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+
+### 5. Open the app
+
+Visit `http://localhost:3000` in your browser
 
 ## Customizing the Topic List
 
@@ -228,10 +226,25 @@ Traces show:
 v4-agentic-rag/
 ├── api/
 │   ├── index.py              # FastAPI app with LangGraph agent
-│   └── requirements.txt      # Python dependencies
-├── frontend/
-│   ├── index.html            # Single-file app (HTML, CSS, JS)
-│   └── images/               # Favicon and icons
+│   └── requirements.txt      # Python dependencies (Vercel)
+├── frontend/                 # Next.js frontend
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx      # Main app with state management
+│   │   │   └── globals.css
+│   │   └── components/
+│   │       ├── HomeScreen.tsx    # Chapter selection
+│   │       ├── StudyScreen.tsx   # Flashcard display + actions
+│   │       ├── Flashcard.tsx     # Card with flip animation
+│   │       ├── ChatPanel.tsx     # Slide-up chat
+│   │       ├── ChatMessage.tsx   # Message bubble
+│   │       ├── ChatInput.tsx     # Chat input field
+│   │       ├── Sidebar.tsx       # Desktop sidebar
+│   │       └── LoadingDots.tsx   # Loading indicator
+│   ├── public/images/        # Favicon and icons
+│   ├── next.config.ts        # API proxy config
+│   └── package.json
 ├── documents/
 │   ├── topic-list.md         # Chapter/topic structure
 │   └── ref-*.md              # Knowledge base documents
@@ -247,7 +260,7 @@ StudyBuddy v4 is configured for Vercel deployment:
 
 - `vercel.json` defines the build and routing configuration
 - API routes are handled by the Python serverless function
-- Frontend is served as static files
+- Frontend is built with Next.js
 - Deployment is triggered only when `v4-agentic-rag/` or `vercel.json` changes
 
 ## Cost Considerations

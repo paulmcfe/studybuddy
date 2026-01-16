@@ -6,7 +6,7 @@ Alright, let's put everything together. We're rebuilding StudyBuddy using LangGr
 
 StudyBuddy v4 transforms from a simple agent into a sophisticated learning assistant with intelligent retrieval. The knowledge base changes too. Instead of Sherlock Holmes stories, we're using the AI Engineering reference guides. This makes StudyBuddy a tool that helps you learn the very concepts you're studying in this book. Meta, right?
 
-The new features include LangGraph-based architecture with explicit state management, query analysis that determines complexity and retrieval strategy, dynamic retrieval that adapts based on query needs, evaluation and reflection that assesses answer quality, confidence scoring so the system knows what it doesn't know, flashcard generation for important concepts (the foundation for the multi-agent system in Chapter 5), and LangSmith observability for debugging and improvement.
+The new features include LangGraph-based architecture with explicit state management, query analysis that determines complexity and retrieval strategy, dynamic retrieval that adapts based on query needs, evaluation and reflection that assesses answer quality, confidence scoring so the system knows what it doesn't know, a dedicated flashcard endpoint for study mode (the foundation for the multi-agent system in Chapter 5), and LangSmith observability for debugging and improvement.
 
 ## Starting point
 
@@ -267,11 +267,10 @@ Generation node:
 
 ```python
 def generate_node(state: StudyBuddyState) -> StudyBuddyState:
-    """Generate response with flashcard suggestion."""
+    """Generate educational response."""
     query = state["query"]
     docs = state["retrieved_docs"]
     confidence = state.get("confidence", 0.5)
-    query_type = state.get("query_type", "conceptual")
 
     # Format context with sources
     context_parts = []
@@ -293,42 +292,14 @@ Instructions:
 - Cite sources when using specific information
 - Use examples to illustrate concepts
 - If the context doesn't fully cover the question, acknowledge gaps
-- Match your explanation depth to the question complexity
-
-After your explanation, if this covers an important concept worth remembering,
-suggest a flashcard in this format:
-
-FLASHCARD:
-Front: [question testing the key concept]
-Back: [concise answer]
-
-Only suggest a flashcard for conceptual or factual questions with clear takeaways.
-Skip for procedural how-to questions or comparisons."""
+- Match your explanation depth to the question complexity"""
 
     response = llm.invoke(generate_prompt)
-    content = response.content
-
-    # Extract flashcard if present
-    flashcard = None
-    if "FLASHCARD:" in content:
-        parts = content.split("FLASHCARD:")
-        main_response = parts[0].strip()
-        flashcard_text = parts[1].strip()
-
-        # Parse flashcard
-        try:
-            lines = flashcard_text.split("\n")
-            front = next(l for l in lines if l.startswith("Front:")).replace("Front:", "").strip()
-            back = next(l for l in lines if l.startswith("Back:")).replace("Back:", "").strip()
-            flashcard = {"front": front, "back": back}
-        except:
-            flashcard = None
-        content = main_response
 
     return {
-        "response": content,
+        "response": response.content,
         "confidence": confidence,
-        "flashcard_suggestion": flashcard
+        "flashcard_suggestion": None
     }
 ```
 
@@ -478,7 +449,6 @@ Simple factual query (should use retrieval, low complexity):
 # - Query analysis: factual, simple, needs_retrieval=True
 # - Retrieval: k=2, single search query
 # - High confidence, quick response
-# - Likely suggests a flashcard
 ```
 
 Complex conceptual query (should use multi-query retrieval):
@@ -502,7 +472,6 @@ General knowledge query (should skip retrieval):
 # - Query analysis: procedural, simple, needs_retrieval=False
 # - Routes directly to direct_answer_node
 # - Quick response from general knowledge
-# - No flashcard (basic programming)
 ```
 
 ## Viewing traces in LangSmith
@@ -624,10 +593,10 @@ The code examples above focus on the core agentic RAG architecture. The actual S
 This required a few additions to the API layer:
 
 - /api/chapters endpoint that parses a topic-list.md file for chapter/topic navigation.
-- /api/flashcard endpoint that generates scoped flashcards using the same retrieval patterns.
-- card_context parameter in the chat endpoint for flashcard-aware conversations.
+- /api/flashcard endpoint that generates scoped flashcards using dedicated flashcard generation logic.
+- card_context parameter in the chat endpoint so the tutor knows what flashcard you're studying.
 
-These are presentation-layer enhancements. The underlying LangGraph agent—query analysis, adaptive retrieval, evaluation, and generation—remains exactly as described in this chapter.
+The chat feature focuses on tutoring—answering questions and explaining concepts—while flashcard generation is handled separately by the dedicated /api/flashcard endpoint. This separation keeps chat responses clean and focused.
 
 ## Deploying to Vercel
 
@@ -686,7 +655,7 @@ Or simply push to GitHub. Vercel will automatically deploy when changes are dete
 
 ## What's next
 
-StudyBuddy v4 is a sophisticated agentic RAG system. It understands query complexity, adapts its retrieval strategy, evaluates its own results, and knows when it's uncertain. The flashcard suggestions lay the groundwork for the multi-agent system we'll build in Chapter 5.
+StudyBuddy v4 is a sophisticated agentic RAG system. It understands query complexity, adapts its retrieval strategy, evaluates its own results, and knows when it's uncertain. The dedicated flashcard generation endpoint lays the groundwork for the multi-agent system we'll build in Chapter 5.
 
 In the next chapter, we'll expand StudyBuddy into a true multi-agent application. We'll have separate agents for tutoring, flashcard generation, quality checking, and scheduling, all coordinated by a supervisor. The single-agent pattern we built here will become one piece of a larger, more capable system.
 

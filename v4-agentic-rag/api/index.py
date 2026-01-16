@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -394,42 +393,15 @@ Instructions:
 - Cite sources when using specific information (e.g., "According to the RAG Fundamentals guide...")
 - Use examples to illustrate concepts
 - If the context doesn't fully cover the question, acknowledge gaps honestly
-- Match your explanation depth to the question complexity
-
-After your explanation, if this covers an important concept worth remembering,
-suggest a flashcard in this EXACT format:
-
-FLASHCARD:
-Front: [question testing the key concept]
-Back: [concise answer]
-
-Only suggest a flashcard for conceptual or factual questions with clear takeaways.
-Skip for procedural how-to questions, comparisons, or conversational messages.
-Skip if the student is asking about a flashcard they're already studying."""
+- Match your explanation depth to the question complexity"""
 
     response = llm.invoke(generate_prompt)
     content = response.content
 
-    # Extract flashcard if present
-    flashcard = None
-    if "FLASHCARD:" in content:
-        parts = content.split("FLASHCARD:")
-        main_response = parts[0].strip()
-        flashcard_text = parts[1].strip()
-
-        try:
-            lines = flashcard_text.split("\n")
-            front = next(l for l in lines if l.startswith("Front:")).replace("Front:", "").strip()
-            back = next(l for l in lines if l.startswith("Back:")).replace("Back:", "").strip()
-            flashcard = {"front": front, "back": back}
-        except:
-            flashcard = None
-        content = main_response
-
     return {
         "response": content,
         "confidence": confidence,
-        "flashcard_suggestion": flashcard
+        "flashcard_suggestion": None
     }
 
 
@@ -760,8 +732,3 @@ def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
 
 
-# Serve static files (local development only)
-if not IS_VERCEL:
-    frontend_path = Path(__file__).parent.parent / "frontend"
-    if frontend_path.exists():
-        app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
