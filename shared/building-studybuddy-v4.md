@@ -511,6 +511,112 @@ With LANGSMITH_TRACING enabled, every request generates a trace. Go to smith.lan
 
 Click into any trace to see the full execution flow. Use the graph view to see which path through the state machine was taken. If something looks wrong, use time travel to step through and find where things went off track.
 
+## Architecture
+
+StudyBuddy v4 uses a hybrid architecture with a Next.js frontend and Python/FastAPI backend:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Next.js Frontend (:3000)                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │ HomeScreen  │  │ StudyScreen │  │     ChatPanel       │  │
+│  │  - Chapter  │  │  - Flashcard│  │  - Messages         │  │
+│  │  - Scope    │  │  - Actions  │  │  - Input            │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+└───────────────────────────┬─────────────────────────────────┘
+                            │ /api/* proxy
+┌───────────────────────────▼─────────────────────────────────┐
+│                  FastAPI Backend (:8000)                    │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │              LangGraph Agent                        │    │
+│  │  analyze → retrieve → evaluate → generate           │    │
+│  │     ↓          ↑          ↓                         │    │
+│  │  direct ───────┴──────────┘                         │    │
+│  └─────────────────────────────────────────────────────┘    │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │           Qdrant Vector Store (in-memory)           │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+The frontend handles all user interaction: chapter selection, flashcard display with flip animations, and chat. The backend handles AI logic: document indexing, LangGraph agent execution, and API responses.
+
+## Frontend
+
+The Next.js frontend is organized into focused React components:
+
+**HomeScreen**: Chapter selection with scope toggle
+
+```tsx
+<HomeScreen
+    chapters={chapters}
+    selectedChapter={selectedChapter}
+    scope={scope}
+    onChapterChange={setSelectedChapter}
+    onScopeChange={setScope}
+    onStart={handleStartStudy}
+    disabled={!agentStatus?.indexing_complete}
+    statusMessage={getStatusMessage()}
+/>
+```
+
+**Flashcard**: 3D flip animation with CSS transforms
+
+```tsx
+<div className={`flashcard ${isFlipped ? 'flipped' : ''}`} onClick={onFlip}>
+    <div className="flashcard-face flashcard-front">
+        <div className="topic-badge">{card.topic}</div>
+        <p>{card.question}</p>
+    </div>
+    <div className="flashcard-face flashcard-back">
+        <p>{card.answer}</p>
+        <span className={`source-badge ${card.source === 'rag' ? 'source-rag' : 'source-llm'}`}>
+            {card.source === 'rag' ? 'From study materials' : 'Based on AI knowledge'}
+        </span>
+    </div>
+</div>
+```
+
+**ChatPanel**: Slide-up panel with card context awareness
+
+```tsx
+const handleSendMessage = async (message: string) => {
+    const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            message,
+            chapter_id: selectedChapter,
+            scope,
+            card_context: currentCard ? {
+                question: currentCard.question,
+                answer: currentCard.answer,
+                topic: currentCard.topic,
+            } : undefined,
+        }),
+    })
+    // ...
+}
+```
+
+## Running locally
+
+StudyBuddy v4 runs with two terminals—one for the backend, one for the frontend.
+
+**Terminal 1 - Backend:**
+```bash
+cd v4-agentic-rag
+uv run uvicorn api.index:app --reload --port 8000
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd v4-agentic-rag/frontend
+npm run dev
+```
+
+Visit http://localhost:3000. The Next.js dev server proxies `/api/*` requests to the FastAPI backend on port 8000 (configured in `next.config.ts`).
+
 ## A Note on the UI
 
 The code examples above focus on the core agentic RAG architecture. The actual StudyBuddy v4 implementation extends this with a flashcard-first user interface, where students see flashcards as their primary study mode, with chat available as a secondary feature for deeper exploration.
@@ -525,7 +631,7 @@ These are presentation-layer enhancements. The underlying LangGraph agent—quer
 
 ## Deploying to Vercel
 
-To deploy v3 to Vercel, you need to update two files in the repo root.
+To deploy v4 to Vercel, you need to update two files in the repo root.
 
 First, update vercel.json to point to the v4-agentic-rag directory:
 
