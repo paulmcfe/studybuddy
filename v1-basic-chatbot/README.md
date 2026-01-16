@@ -4,13 +4,13 @@ Your first AI-powered study assistant. This is the foundation we'll build on thr
 
 ## What This Is
 
-StudyBuddy v1 is a conversational AI tutor built with FastAPI and vanilla JavaScript. It can explain concepts, answer questions, and help you understand difficult topics. Right now it's pulling purely from GPT's knowledge - no custom data yet. That's coming in v2.
+StudyBuddy v1 is a conversational AI tutor built with a **Next.js frontend** and **FastAPI backend**. It can explain concepts, answer questions, and help you understand difficult topics. Right now it's pulling purely from GPT's knowledge - no custom data yet. That's coming in v2.
 
 This version demonstrates:
-- Clean FastAPI backend with OpenAI integration
-- Simple, modern chat interface
+- Next.js App Router with React components
+- FastAPI backend with OpenAI integration
 - Markdown rendering for formatted responses
-- Deployment-ready architecture
+- Deployment-ready architecture for Vercel
 - The "build, ship, share" workflow
 
 ## Prerequisites
@@ -24,10 +24,10 @@ This version demonstrates:
 ### Software You'll Need
 
 - **Git:** Version control system for tracking code changes (see Appendix A for installation)
+- **Node.js and npm:** Required for the Next.js frontend. Download from nodejs.org (LTS version recommended).
+- **uv:** Modern Python package manager for the FastAPI backend
 - **A code editor (Cursor recommended):** Cursor is a VS Code fork with AI capabilities built in, perfect for vibe coding. You can also use VS Code with Claude Code or GitHub Copilot.
 - **Terminal access:** Terminal on Mac/Linux, Command Prompt/PowerShell/Windows Terminal on Windows
-- **uv:** Modern Python package manager that handles Python versions and dependencies
-- **(Optional) Node.js and npm:** Only needed for deploying to Vercel from the command line
 
 ## Local Setup
 
@@ -51,41 +51,30 @@ git clone git@github.com:USERNAME/REPO-NAME.git
 cd REPO-NAME
 ```
 
-### 2. Set up dependencies
+### 2. Set up the Backend
 
-The project uses `pyproject.toml` for local development. Make sure it includes these dependencies:
-
-```toml
-dependencies = [
-    "fastapi>=0.115.0",
-    "jupyter>=1.1.1",
-    "uvicorn[standard]>=0.32.0",
-    "openai>=1.54.0",
-    "python-dotenv>=1.0.0",
-]
-```
-
-Vercel uses `api/requirements.txt` instead, which should contain:
-
-```
-fastapi>=0.115.0
-uvicorn[standard]>=0.32.0
-openai>=1.54.0
-python-dotenv>=1.0.0
-```
-
-Install dependencies with uv:
+The backend uses Python with FastAPI. From the project root:
 
 ```bash
+cd v1-basic-chatbot
 uv sync
 ```
 
 This command:
 - Checks for Python 3.12 (downloads it if needed)
 - Creates a virtual environment in `.venv`
-- Installs all project dependencies
+- Installs all Python dependencies
 
-### 3. Set your API key
+### 3. Set up the Frontend
+
+The frontend uses Next.js with React. From the `v1-basic-chatbot` directory:
+
+```bash
+cd frontend
+npm install
+```
+
+### 4. Set your API key
 
 Create a `.env` file in the `v1-basic-chatbot` directory:
 
@@ -105,18 +94,23 @@ export OPENAI_API_KEY=sk-your-actual-api-key-here
 $env:OPENAI_API_KEY="sk-your-actual-api-key-here"
 ```
 
-### 4. Run the app
+### 5. Run the app
 
+You'll need **two terminal windows** - one for the backend, one for the frontend.
+
+**Terminal 1 - Backend (from v1-basic-chatbot/):**
 ```bash
-cd v1-basic-chatbot
 uv run uvicorn api.index:app --reload --port 8000
 ```
 
-You should see: `Uvicorn running on http://127.0.0.1:8000`
+**Terminal 2 - Frontend (from v1-basic-chatbot/frontend/):**
+```bash
+npm run dev
+```
 
-Visit `http://localhost:8000` in your browser.
+Visit `http://localhost:3000` in your browser.
 
-### 5. Test it out
+### 6. Test it out
 
 Ask StudyBuddy something like:
 - "Explain how neural networks learn"
@@ -128,26 +122,37 @@ Ask StudyBuddy something like:
 ```
 v1-basic-chatbot/
 ├── api/
-│   ├── index.py          # FastAPI app with chat endpoint
-│   └── requirements.txt  # Vercel dependencies
+│   ├── index.py              # FastAPI app with chat endpoint
+│   └── requirements.txt      # Vercel Python dependencies
 ├── frontend/
-│   ├── index.html        # Chat interface
-│   ├── styles.css        # Styling
-│   └── app.js            # Frontend logic
-├── .env                  # Your API keys (never commit!)
-├── .gitignore            # Keeps secrets out of git
-├── pyproject.toml        # Python dependencies for local dev
-└── README.md             # You are here
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── layout.tsx    # Root layout
+│   │   │   ├── page.tsx      # Main chat page
+│   │   │   └── globals.css   # Styles and animations
+│   │   └── components/
+│   │       ├── Message.tsx       # Message bubble component
+│   │       ├── MessageList.tsx   # Scrollable message container
+│   │       ├── MessageInput.tsx  # Input textarea + send button
+│   │       └── LoadingDots.tsx   # Loading animation
+│   ├── package.json          # Node.js dependencies
+│   ├── next.config.ts        # Next.js configuration (API proxy)
+│   └── tsconfig.json         # TypeScript configuration
+├── .env                      # Your API keys (never commit!)
+├── .gitignore                # Keeps secrets out of git
+├── pyproject.toml            # Python dependencies for local dev
+└── README.md                 # You are here
 ```
 
-## Understanding the Backend
+## Understanding the Architecture
 
-The backend in `api/index.py` does the following:
+### Backend (FastAPI)
+
+The backend in `api/index.py`:
 - Sets up a FastAPI server with CORS enabled
 - Loads environment variables from `.env`
 - Initializes an OpenAI client
 - Exposes a POST endpoint at `/api/chat` that sends messages to OpenAI's API using gpt-4o-mini
-- Serves the frontend static files
 
 The chat endpoint uses OpenAI's Responses API:
 
@@ -159,6 +164,19 @@ response = client.responses.create(
 )
 return {"reply": response.output_text}
 ```
+
+### Frontend (Next.js)
+
+The frontend uses React with TypeScript:
+- **App Router:** Modern Next.js routing in `src/app/`
+- **Components:** Reusable React components in `src/components/`
+- **State Management:** React hooks (useState) for chat messages
+- **Markdown:** react-markdown for rendering AI responses
+- **Styling:** Tailwind CSS for utility-first styling
+
+### Local Development
+
+During development, the Next.js dev server (port 3000) proxies `/api/*` requests to the FastAPI backend (port 8000). This is configured in `next.config.ts`.
 
 ## Deploying to Vercel
 
@@ -214,7 +232,7 @@ Check out Appendix B for more project ideas and prompts.
 
 ### Adjust the styling
 
-Edit `frontend/styles.css` to change colors, fonts, and layout.
+Edit `frontend/src/app/globals.css` or modify the Tailwind classes in the React components.
 
 ### Add features
 
@@ -244,13 +262,17 @@ In Chapter 2, we'll add RAG (Retrieval-Augmented Generation) so StudyBuddy can a
 
 **Backend won't start:**
 - Check your OpenAI API key is set in `.env` or as an environment variable
-- Make sure dependencies are installed: `uv sync`
+- Make sure Python dependencies are installed: `uv sync`
 - Verify you're in the v1-basic-chatbot directory
 
+**Frontend won't start:**
+- Make sure Node.js dependencies are installed: `cd frontend && npm install`
+- Check that you're running `npm run dev` from the `frontend/` directory
+
 **Frontend can't reach backend:**
-- Check backend is running on port 8000
+- Make sure the backend is running on port 8000
 - Check for CORS errors in browser console
-- Verify the API endpoint in `app.js` matches your backend
+- Verify the Next.js proxy is configured in `next.config.ts`
 
 **Deployment issues:**
 - Make sure `.env` is in `.gitignore` (never commit API keys!)

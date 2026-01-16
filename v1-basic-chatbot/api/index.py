@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from openai import OpenAI
 from pathlib import Path
@@ -13,7 +12,7 @@ load_dotenv(env_path)
 
 app = FastAPI()
 
-# CORS so the frontend can talk to backend
+# CORS for local development (frontend on port 3000, backend on port 8000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -42,8 +41,3 @@ def chat(request: ChatRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error calling OpenAI API: {str(e)}")
-
-# Serve frontend static files (must be after API routes)
-frontend_path = Path(__file__).parent.parent / "frontend"
-if frontend_path.exists():
-    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")

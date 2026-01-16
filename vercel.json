@@ -2,17 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "v9-optimized-retrieval/api/index.py",
+      "src": "v1-basic-chatbot/api/index.py",
       "use": "@vercel/python"
     },
     {
-      "src": "v9-optimized-retrieval/frontend/**",
-      "use": "@vercel/static"
+      "src": "v1-basic-chatbot/frontend/package.json",
+      "use": "@vercel/next"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/v9-optimized-retrieval/api/index.py" },
-    { "src": "/(.*)", "dest": "/v9-optimized-retrieval/frontend/$1" }
+    { "src": "/api/(.*)", "dest": "/v1-basic-chatbot/api/index.py" },
+    { "src": "/(.*)", "dest": "/v1-basic-chatbot/frontend/$1" }
   ],
   "git": {
     "deploymentEnabled": {
