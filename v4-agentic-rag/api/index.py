@@ -547,7 +547,11 @@ class FlashcardResponse(BaseModel):
 
 @app.get("/api/status")
 def get_status():
-    """Check indexing status."""
+    """Check indexing status. On Vercel, triggers initialization on first call."""
+    # On Vercel, initialize on first status check (since frontend polls this)
+    if IS_VERCEL:
+        ensure_initialized()
+
     return {
         "indexing_complete": indexing_status["done"],
         "documents_indexed": indexing_status["count"],
