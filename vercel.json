@@ -2,17 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "v2-rag-from-scratch/api/index.py",
+      "src": "v3-the-agent-loop/api/index.py",
       "use": "@vercel/python"
     },
     {
-      "src": "v2-rag-from-scratch/frontend/package.json",
+      "src": "v3-the-agent-loop/frontend/package.json",
       "use": "@vercel/next"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/v2-rag-from-scratch/api/index.py" },
-    { "src": "/(.*)", "dest": "/v2-rag-from-scratch/frontend/$1" }
+    { "src": "/api/(.*)", "dest": "/v3-the-agent-loop/api/index.py" },
+    { "src": "/(.*)", "dest": "/v3-the-agent-loop/frontend/$1" }
   ],
   "git": {
     "deploymentEnabled": {

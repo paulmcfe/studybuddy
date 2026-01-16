@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -11,9 +10,6 @@ from dotenv import load_dotenv
 # Load .env from parent directory (v3-the-agent-loop/)
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(env_path)
-
-# Check if running on Vercel
-IS_VERCEL = os.environ.get("VERCEL") == "1"
 
 # ============== LangChain Agent Setup ==============
 
@@ -257,10 +253,3 @@ def chat(request: ChatRequest):
     except Exception as e:
         error_detail = f"{type(e).__name__}: {str(e)}"
         raise HTTPException(status_code=500, detail=error_detail)
-
-
-# Serve frontend static files (local development only)
-if not IS_VERCEL:
-    frontend_path = Path(__file__).parent.parent / "frontend"
-    if frontend_path.exists():
-        app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")

@@ -10,9 +10,10 @@ This version demonstrates:
 - LangChain 1.0's `create_agent` API
 - Qdrant vector database with in-memory mode
 - Tool-based architecture with the `@tool` decorator
-- ReAct-style reasoning (reason → act → observe)
+- ReAct-style reasoning (reason -> act -> observe)
 - Background document indexing with progress tracking
 - Production-ready document processing pipeline
+- **Agent reasoning visibility** - see what tools the agent called
 
 ## What's an Agent?
 
@@ -28,6 +29,7 @@ This is called the "agent loop." The system prompt encourages step-by-step think
 ## Prerequisites
 
 - Python 3.12+
+- Node.js 18+ (for the frontend)
 - An OpenAI API key (grab one at platform.openai.com)
 - Git and GitHub account
 - Vercel account (free tier works great)
@@ -41,7 +43,7 @@ git clone https://github.com/yourusername/studybuddy.git
 cd studybuddy/v3-the-agent-loop
 ```
 
-### 2. Set up the project
+### 2. Set up the backend
 
 ```bash
 # Create .env file
@@ -51,12 +53,21 @@ echo "OPENAI_API_KEY=your-key-here" > .env
 uv sync
 ```
 
-### 3. Add study materials
+### 3. Set up the frontend
+
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+### 4. Add study materials
 
 Place `.txt` or `.md` files in the `documents/` directory. The default setup includes 12 Sherlock Holmes stories from "The Adventures of Sherlock Holmes."
 
-### 4. Run the app
+### 5. Run the app (two terminals)
 
+**Terminal 1 - Backend:**
 ```bash
 uv run uvicorn api.index:app --reload --port 8000
 ```
@@ -70,9 +81,15 @@ Indexed 52 chunks from The Red Headed League
 ...
 ```
 
-Visit `http://localhost:8000` in your browser. The UI shows indexing progress.
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
+npm run dev
+```
 
-### 5. Test it out
+Visit `http://localhost:3000` in your browser. The UI shows indexing progress (e.g., "Indexing 'A Scandal In Bohemia'... (47 chunks)").
+
+### 6. Test it out
 
 Try questions that require searching:
 - "Who is Irene Adler?"
@@ -83,7 +100,7 @@ Then try questions the agent can answer directly:
 - "What's the capital of France?"
 - "Explain what a vector database is"
 
-Watch how the agent decides whether to search or answer directly.
+Watch how the agent decides whether to search or answer directly. Click **"Show reasoning"** on assistant messages to see the tool calls and observations.
 
 ## Project Structure
 
@@ -96,10 +113,20 @@ v3-the-agent-loop/
 │   ├── 01-a-scandal-in-bohemia.txt
 │   ├── 02-the-red-headed-league.txt
 │   └── ...
-├── frontend/
-│   ├── index.html       # Chat interface
-│   ├── styles.css       # Styling
-│   └── app.js           # Frontend logic with status polling
+├── frontend/            # Next.js frontend
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx      # Chat UI with status polling
+│   │   │   └── globals.css
+│   │   └── components/
+│   │       ├── Message.tsx       # Renders messages + reasoning toggle
+│   │       ├── MessageList.tsx
+│   │       ├── MessageInput.tsx
+│   │       └── LoadingDots.tsx
+│   ├── public/images/    # Favicon and icons
+│   ├── next.config.ts    # API proxy config
+│   └── package.json
 ├── .env                 # Your API keys (never commit!)
 ├── .gitignore           # Keeps secrets out of git
 ├── pyproject.toml       # Python dependencies
@@ -154,6 +181,18 @@ vector_store = QdrantVectorStore(
     collection_name="study_materials",
     embedding=embeddings
 )
+```
+
+### Reasoning Toggle (Frontend)
+
+The Message component shows a "Show reasoning" button when the agent used tools:
+
+```tsx
+{reasoning && (
+    <button onClick={() => setShowReasoning(!showReasoning)}>
+        {showReasoning ? 'Hide reasoning' : 'Show reasoning'}
+    </button>
+)}
 ```
 
 ## Deploying to Vercel
@@ -225,6 +264,11 @@ In Chapter 4, we'll rebuild using LangGraph for complete control over the agent'
 - Check your OpenAI API key is set in `.env`
 - Make sure you're in the virtual environment
 - Verify LangChain 1.0+ is installed: `pip list | grep langchain`
+
+**Frontend won't start:**
+- Make sure you ran `npm install` in the `frontend/` directory
+- Check Node.js 18+ is installed: `node --version`
+- If port 3000 is busy, Next.js will use 3001
 
 **Documents not indexing:**
 - Check the `documents/` directory exists and contains `.txt` or `.md` files
