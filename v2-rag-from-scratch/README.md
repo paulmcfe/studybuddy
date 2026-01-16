@@ -7,6 +7,8 @@ Your AI tutor now has a memory. This version adds Retrieval-Augmented Generation
 StudyBuddy v2 builds on v1 by adding RAG capabilities. Instead of relying solely on the model's training data, it retrieves relevant context from study materials before answering. This version includes a complete RAG implementation built from scratch—no frameworks, just pure Python.
 
 This version demonstrates:
+- **Next.js frontend** with React components
+- **FastAPI backend** with custom RAG pipeline
 - Custom vector database implementation using NumPy
 - Text chunking with overlap for better context
 - OpenAI embeddings for semantic search
@@ -24,7 +26,9 @@ This version demonstrates:
 
 ## Prerequisites
 
-- Python 3.12+
+- **Node.js and npm**: Required for the Next.js frontend. Download from nodejs.org (LTS version recommended).
+- **Python 3.12+**: For the FastAPI backend
+- **uv**: Modern Python package manager
 - An OpenAI API key (grab one at platform.openai.com)
 - Git and GitHub account
 - Vercel account (free tier works great)
@@ -38,7 +42,7 @@ git clone https://github.com/yourusername/studybuddy.git
 cd studybuddy/v2-rag-from-scratch
 ```
 
-### 2. Set up the project
+### 2. Set up the Backend
 
 ```bash
 # Create .env file
@@ -48,43 +52,68 @@ echo "OPENAI_API_KEY=your-key-here" > .env
 uv sync
 ```
 
-### 3. Run the app
+### 3. Set up the Frontend
 
+```bash
+cd frontend
+npm install
+```
+
+### 4. Run the app
+
+You'll need **two terminal windows** - one for the backend, one for the frontend.
+
+**Terminal 1 - Backend (from v2-rag-from-scratch/):**
 ```bash
 uv run uvicorn api.index:app --reload --port 8000
 ```
 
-You should see: `Uvicorn running on http://localhost:8000`
+**Terminal 2 - Frontend (from v2-rag-from-scratch/frontend/):**
+```bash
+npm run dev
+```
 
-Visit `http://localhost:8000` in your browser.
+Visit `http://localhost:3000` in your browser.
 
-### 4. Test it out
+### 5. Test it out
 
 The built-in study materials cover biology topics. Try:
 - "What are the phases of mitosis?"
 - "Explain the Calvin Cycle"
 - "How does the water cycle work?"
 
+Watch the footer - it shows "Indexing..." initially, then "RAG enabled" once the vector database is ready.
+
 ## Project Structure
 
 ```
 v2-rag-from-scratch/
 ├── api/
-│   ├── index.py         # FastAPI app with RAG implementation
-│   └── requirements.txt # Vercel dependencies
+│   ├── index.py              # FastAPI app with RAG implementation
+│   └── requirements.txt      # Vercel Python dependencies
 ├── frontend/
-│   ├── index.html       # Chat interface
-│   ├── styles.css       # Styling
-│   └── app.js           # Frontend logic
-├── .env                 # Your API keys (never commit!)
-├── .gitignore           # Keeps secrets out of git
-├── pyproject.toml       # Python dependencies
-└── README.md            # You are here
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── layout.tsx    # Root layout
+│   │   │   ├── page.tsx      # Main chat page with RAG status
+│   │   │   └── globals.css   # Styles and animations
+│   │   └── components/
+│   │       ├── Message.tsx       # Message bubble component
+│   │       ├── MessageList.tsx   # Scrollable message container
+│   │       ├── MessageInput.tsx  # Input textarea + send button
+│   │       └── LoadingDots.tsx   # Loading animation
+│   ├── package.json          # Node.js dependencies
+│   ├── next.config.ts        # Next.js configuration (API proxy)
+│   └── tsconfig.json         # TypeScript configuration
+├── .env                      # Your API keys (never commit!)
+├── .gitignore                # Keeps secrets out of git
+├── pyproject.toml            # Python dependencies
+└── README.md                 # You are here
 ```
 
 ## Deploying to Vercel
 
-The app deploys as a single project. For Vercel's serverless environment, the study materials are embedded directly in the code since in-memory storage doesn't persist between requests.
+The app deploys as a hybrid project - Next.js frontend + Python serverless backend. For Vercel's serverless environment, the study materials are embedded directly in the code since in-memory storage doesn't persist between requests.
 
 ```bash
 # From the repo root
@@ -128,6 +157,10 @@ Edit the prompt in `answer_question()`:
 prompt = f'''You are StudyBuddy, a helpful tutoring assistant...'''
 ```
 
+### Adjust the frontend styling
+
+Edit `frontend/src/app/globals.css` or modify the Tailwind classes in the React components.
+
 ## Understanding the RAG Implementation
 
 The `SimpleVectorDB` class is a minimal vector database:
@@ -154,21 +187,25 @@ In Chapter 3, we'll rebuild StudyBuddy as a proper agent using LangChain 1.0 and
 
 **Backend won't start:**
 - Check your OpenAI API key is set in `.env`
-- Make sure you're in the virtual environment
-- Verify dependencies installed: `pip list | grep fastapi`
+- Make sure Python dependencies are installed: `uv sync`
+- Verify you're in the v2-rag-from-scratch directory
+
+**Frontend won't start:**
+- Make sure Node.js dependencies are installed: `cd frontend && npm install`
+- Check that you're running `npm run dev` from the `frontend/` directory
 
 **RAG not finding relevant content:**
-- Check the study material is being indexed (see `/api/status`)
+- Check the study material is being indexed (see RAG status in footer)
 - Try adjusting chunk size for your content type
 - Ensure your questions relate to the indexed material
 
 **Frontend can't reach backend:**
-- Check backend is running on port 8000
+- Make sure the backend is running on port 8000
 - Check for CORS errors in browser console
-- Verify the API_URL in `app.js` matches your backend
+- Verify the Next.js proxy is configured in `next.config.ts`
 
 **Deployment issues:**
-- Make sure `.env` is in `.gitignore`
+- Make sure `.env` is in `.gitignore` (never commit API keys!)
 - Verify environment variables are set in Vercel dashboard
 - Check logs: `vercel logs` for error details
 

@@ -1,6 +1,15 @@
 # Project Specific
 uv.lock
 
+# Node.js / Next.js
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.vercel
+*.tsbuildinfo
+next-env.d.ts
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

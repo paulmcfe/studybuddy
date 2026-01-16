@@ -4,19 +4,48 @@ Alright. Time to build. You've got the concepts. Now let's implement them.
 
 In Chapter 1, you built StudyBuddy v1, a basic tutoring chatbot that could explain concepts but had no access to specific study materials. It was helpful, but limited. If a student asked about a topic not in the model's training data, v1 couldn't help. If they uploaded their textbook and asked questions about it, v1 had no way to reference that content.
 
-StudyBuddy v2 fixes that. We're adding document upload and RAG so students can upload their study materials and get explanations grounded in those specific sources. Upload a chapter on mitosis, ask how it works, and get an answer that references the exact diagrams and explanations from that chapter.
+StudyBuddy v2 fixes that. We're adding RAG so students can get explanations grounded in specific study materials. Ask about mitosis, and get an answer that references the exact explanations from the indexed content.
 
 ## What We're Adding
 
-StudyBuddy v2 adds three major capabilities: document upload, RAG retrieval, and source attribution. Students can upload PDFs or text files with their study materials. When they ask a question, StudyBuddy retrieves relevant sections from those materials and uses them to generate grounded explanations. The response includes references to which documents and sections the information came from.
+StudyBuddy v2 adds RAG retrieval and source attribution. When a student asks a question, StudyBuddy retrieves relevant sections from indexed study materials and uses them to generate grounded explanations. The response includes references to which documents the information came from.
 
 Under the hood, we're building a RAG pipeline from scratch. No frameworks yet because we want you to see exactly how everything works. We'll create our own simple vector database in memory, implement chunking, call the OpenAI embeddings API, perform similarity search, and generate augmented prompts.
 
 This is intentionally a learning exercise. In Chapter 3, we'll rebuild this using proper tools like LangChain and Qdrant. But for now, writing it yourself helps you understand what those tools are actually doing.
 
-## Implementation Overview
+## Architecture
 
-The architecture has two main components: a document processing pipeline that handles uploads and indexing, and a query handler that performs retrieval and generation. When a document is uploaded, we extract the text, chunk it, generate embeddings, and store everything in memory. When a query comes in, we embed the query, search for similar chunks, and augment the prompt with retrieved context.
+Like v1, StudyBuddy v2 uses a hybrid architecture: **Next.js frontend** with a **Python/FastAPI backend**. The backend handles the RAG pipeline (chunking, embeddings, retrieval), while the frontend provides a React-based chat interface.
+
+```
+v2-rag-from-scratch/
+├── api/
+│   ├── index.py              # FastAPI + RAG pipeline
+│   └── requirements.txt      # Python deps (includes numpy)
+├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── layout.tsx    # Root layout
+│   │   │   ├── page.tsx      # Chat page with RAG status
+│   │   │   └── globals.css   # Tailwind styles
+│   │   └── components/
+│   │       ├── Message.tsx       # Message with markdown
+│   │       ├── MessageList.tsx   # Scrollable container
+│   │       ├── MessageInput.tsx  # Input textarea
+│   │       └── LoadingDots.tsx   # Loading animation
+│   ├── next.config.ts        # API proxy config
+│   └── package.json          # Node.js dependencies
+├── .env                      # API keys
+├── pyproject.toml
+└── README.md
+```
+
+The key difference from v1 is the backend. While v1 just forwarded messages to OpenAI, v2's backend includes a complete RAG pipeline: chunking, embedding, storage, retrieval, and augmented generation.
+
+## The RAG Pipeline
+
+The backend has two main flows: indexing (processing documents) and querying (answering questions). When the server starts, it indexes the built-in study materials. When a question comes in, it retrieves relevant chunks and augments the prompt.
 
 Let's walk through the code. First, the vector database:
 
@@ -128,45 +157,77 @@ Question: {question}'''
 
 The `retrieve_context` function embeds the query and searches the vector database. It formats the results with document attribution so we know where each chunk came from. The `answer_question` function retrieves context, builds a prompt that includes both the context and the question, and sends it to the LLM.
 
-## Testing StudyBuddy v2
+## Running StudyBuddy v2
 
-Let's test it. We'll set up StudyBuddy to automatically index some text embedded in the code:
+v2 uses the same two-terminal setup as v1. The backend indexes study materials on startup, and the frontend polls for indexing status.
 
-```python
-# Sample study material embedded directly in the code
-STUDY_MATERIAL = """
-Mitosis: Cell Division Explained
-
-Mitosis is the process by which a single cell divides to produce two
-identical daughter cells. It is essential for growth, repair, and
-maintenance of living organisms. Mitosis ensures that each new cell
-receives an exact copy of the parent cell's genetic material.
-
-...
-
-"""
-
-def index_document(text: str, doc_name: str):
-    chunks = chunk_text(text)
-    for i, chunk in enumerate(chunks):
-        embedding = embed_text(chunk)
-        vector_db.add(embedding, chunk, {'doc_name': doc_name, 'chunk_id': i})
-
-def index_study_material():
-    """Index the built-in study material."""
-    if vector_db.vectors:
-        return len(vector_db.vectors)  # Already indexed
-    index_document(STUDY_MATERIAL, "study-guide")
-    return len(vector_db.vectors)
+**Terminal 1 - Backend (from v2-rag-from-scratch/):**
+```bash
+uv run uvicorn api.index:app --reload --port 8000
 ```
 
-The system embeds the question, finds the chunks that mention prophase, retrieves them, and generates an answer grounded in that specific text. The response will reference the source material as follows:
-
+**Terminal 2 - Frontend (from v2-rag-from-scratch/frontend/):**
+```bash
+npm run dev
 ```
-Source: study-guide, Mitosis: Cell Division Explained.
+
+Visit `http://localhost:3000`. You'll see "Indexing..." in the footer while the backend processes the study materials, then "RAG enabled" once it's ready.
+
+The backend includes built-in study material about mitosis, photosynthesis, and the water cycle. When you ask a question, the system embeds it, finds relevant chunks, retrieves them, and generates an answer grounded in that specific text. The response will reference the source material.
+
+## The Frontend: RAG Status
+
+The v2 frontend adds one key feature over v1: RAG status polling. The page uses `useEffect` to poll the `/api/status` endpoint every 2 seconds:
+
+```tsx
+const [ragStatus, setRagStatus] = useState<{
+  indexing_complete: boolean
+  chunks_in_db: number
+} | null>(null)
+
+useEffect(() => {
+  const checkStatus = async () => {
+    try {
+      const res = await fetch('/api/status')
+      if (res.ok) {
+        const data = await res.json()
+        setRagStatus(data)
+      }
+    } catch {
+      // Retry on failure - backend might not be ready yet
+    }
+  }
+
+  checkStatus()
+  const interval = setInterval(checkStatus, 2000)
+  return () => clearInterval(interval)
+}, [])
 ```
 
-This is RAG working end-to-end. Upload documents, chunk them, embed them, store them, then retrieve relevant chunks when users ask questions. Simple in concept, powerful in practice.
+The footer displays the status:
+
+```tsx
+<div className="text-center text-xs text-gray-400 py-2">
+  StudyBuddy v2 · {ragStatus?.indexing_complete
+    ? <span className="text-green-600">RAG enabled</span>
+    : <span className="text-amber-500">Indexing...</span>}
+  {ragStatus && ragStatus.chunks_in_db > 0 && (
+    <span> · {ragStatus.chunks_in_db} chunks</span>
+  )}
+</div>
+```
+
+This gives users feedback about whether the RAG pipeline is ready. The rest of the frontend is identical to v1: React components for messages, markdown rendering, and a chat input.
+
+## Testing the RAG Pipeline
+
+Try these questions to see RAG in action:
+
+- "What happens during prophase?"
+- "Explain how photosynthesis works"
+- "What are the stages of the water cycle?"
+
+The responses should reference the indexed study materials. This is RAG working end-to-end: embed the query, retrieve relevant chunks, augment the prompt with context, generate a grounded response.
 
 ## What's Next
 

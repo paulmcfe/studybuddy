@@ -2,17 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "v1-basic-chatbot/api/index.py",
+      "src": "v2-rag-from-scratch/api/index.py",
       "use": "@vercel/python"
     },
     {
-      "src": "v1-basic-chatbot/frontend/package.json",
+      "src": "v2-rag-from-scratch/frontend/package.json",
       "use": "@vercel/next"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/v1-basic-chatbot/api/index.py" },
-    { "src": "/(.*)", "dest": "/v1-basic-chatbot/frontend/$1" }
+    { "src": "/api/(.*)", "dest": "/v2-rag-from-scratch/api/index.py" },
+    { "src": "/(.*)", "dest": "/v2-rag-from-scratch/frontend/$1" }
   ],
   "git": {
     "deploymentEnabled": {

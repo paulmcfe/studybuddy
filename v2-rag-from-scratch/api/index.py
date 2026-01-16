@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from pathlib import Path
 from typing import List
@@ -12,9 +11,6 @@ from dotenv import load_dotenv
 # Load .env from parent directory (v2-rag-from-scratch/)
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(env_path)
-
-# Check if running on Vercel
-IS_VERCEL = os.environ.get("VERCEL") == "1"
 
 
 # ============== RAG Implementation ==============
@@ -218,6 +214,12 @@ app.add_middleware(
 )
 
 
+@app.on_event("startup")
+def startup_event():
+    """Index study materials when server starts."""
+    index_study_material()
+
+
 class ChatRequest(BaseModel):
     message: str
 
@@ -246,8 +248,3 @@ def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=error_detail)
 
 
-# Serve frontend static files (local development only)
-if not IS_VERCEL:
-    frontend_path = Path(__file__).parent.parent / "frontend"
-    if frontend_path.exists():
-        app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
