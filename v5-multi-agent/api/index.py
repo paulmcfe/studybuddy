@@ -82,13 +82,28 @@ indexing_status = {"done": False, "count": 0, "chunks": 0, "current_file": ""}
 
 def index_reference_guides():
     """Index all reference guide markdown files."""
-    documents_dir = Path(__file__).parent.parent / "documents"
-    if not documents_dir.exists():
-        print(f"Documents directory not found: {documents_dir}")
+    # Try multiple path strategies for Vercel compatibility
+    possible_paths = [
+        Path(__file__).parent.parent / "documents",  # Local dev: api/../documents
+        Path(__file__).parent / "documents",  # Alternative
+        Path("v5-multi-agent/documents"),  # Vercel project root
+        Path("/var/task/v5-multi-agent/documents"),  # Vercel serverless
+    ]
+
+    documents_dir = None
+    for path in possible_paths:
+        print(f"Trying path: {path} - exists: {path.exists()}")
+        if path.exists():
+            documents_dir = path
+            break
+
+    if documents_dir is None:
+        print(f"Documents directory not found in any of: {possible_paths}")
         indexing_status["done"] = True
         return 0
 
     guide_files = sorted(documents_dir.glob("ref-*.md"))
+    print(f"Found {len(guide_files)} ref-*.md files in {documents_dir}")
     if not guide_files:
         print("No ref-*.md files found in documents directory")
         indexing_status["done"] = True
@@ -137,9 +152,22 @@ def parse_topic_list() -> list[dict]:
     if _cached_chapters is not None:
         return _cached_chapters
 
-    topic_file = Path(__file__).parent.parent / "documents" / "topic-list.md"
-    if not topic_file.exists():
-        print(f"topic-list.md not found at {topic_file}")
+    # Try multiple path strategies for Vercel compatibility
+    possible_paths = [
+        Path(__file__).parent.parent / "documents" / "topic-list.md",
+        Path(__file__).parent / "documents" / "topic-list.md",
+        Path("v5-multi-agent/documents/topic-list.md"),
+        Path("/var/task/v5-multi-agent/documents/topic-list.md"),
+    ]
+
+    topic_file = None
+    for path in possible_paths:
+        if path.exists():
+            topic_file = path
+            break
+
+    if topic_file is None:
+        print(f"topic-list.md not found in any of: {possible_paths}")
         return []
 
     content = topic_file.read_text()
