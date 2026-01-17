@@ -23,6 +23,5 @@
     "deploymentEnabled": {
       "main": true
     }
-  },
-  "ignoreCommand": "bash scripts/should-deploy.sh"
+  }
 }
