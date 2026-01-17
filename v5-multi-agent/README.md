@@ -10,6 +10,7 @@ StudyBuddy v5 transforms from a single agentic RAG system (v4) into a team of sp
 - **Card Generator Agent**: Creates high-quality flashcards using gpt-4o-mini
 - **Quality Checker Agent**: Validates card clarity and usefulness
 - **Learning Coordinator (Supervisor)**: Orchestrates all agents based on student needs
+- **Next.js Frontend**: Modern React-based UI with chapter selection and chat panel
 
 ## Features
 
@@ -17,6 +18,7 @@ StudyBuddy v5 transforms from a single agentic RAG system (v4) into a team of sp
 - **Quality-Checked Flashcards**: All cards pass through quality validation
 - **Interactive Chat**: Ask questions about concepts or flashcards
 - **Chapter-Based Study**: Topics organized by chapter with single or cumulative modes
+- **Two-Button Review**: "Got It" for new topics, "Study More" for same topic
 - **LangSmith Tracing**: Full observability of agent interactions
 
 ## Architecture
@@ -42,6 +44,7 @@ StudyBuddy v5 transforms from a single agentic RAG system (v4) into a team of sp
 ## Prerequisites
 
 - Python 3.12+
+- Node.js 18+
 - OpenAI API key
 - LangSmith API key (optional, for tracing)
 
@@ -76,21 +79,30 @@ OPENAI_API_KEY=sk-your-key-here
 LANGSMITH_API_KEY=lsv2_your-key-here
 ```
 
-### 4. Run the server
+### 4. Install frontend dependencies
 
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+### 5. Run the app (two terminals)
+
+**Terminal 1 - Backend:**
 ```bash
 uv run uvicorn api.index:app --reload --port 8000
 ```
 
-Or without uv:
-
+**Terminal 2 - Frontend:**
 ```bash
-uvicorn api.index:app --reload --port 8000
+cd frontend
+npm run dev
 ```
 
-### 5. Open the app
+### 6. Open the app
 
-Visit `http://localhost:8000` in your browser.
+Visit `http://localhost:3000` in your browser. The Next.js dev server proxies `/api/*` requests to the FastAPI backend on port 8000.
 
 ## API Endpoints
 
@@ -131,9 +143,20 @@ v5-multi-agent/
 │       ├── card_generator.py # Card Generator agent
 │       ├── quality_checker.py# Quality Checker agent
 │       └── supervisor.py     # Supervisor/Coordinator
-├── frontend/
-│   ├── index.html            # Single-file app
-│   └── images/               # Favicon and icons
+├── frontend/                  # Next.js frontend
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx
+│   │   │   └── globals.css
+│   │   └── components/
+│   │       ├── HomeScreen.tsx
+│   │       ├── StudyScreen.tsx
+│   │       ├── Flashcard.tsx
+│   │       ├── ChatPanel.tsx
+│   │       └── ...
+│   ├── next.config.ts
+│   └── package.json
 ├── documents/
 │   ├── topic-list.md         # Chapter/topic structure
 │   └── ref-*.md              # Knowledge base documents
@@ -160,6 +183,7 @@ Traces show:
 | Routing | Simple node graph | Supervisor pattern |
 | Card quality | Generated directly | Generated → Quality checked |
 | Models | gpt-4o-mini only | gpt-4o + gpt-4o-mini |
+| Review buttons | Got It / Study More | Got It / Study More |
 
 ## Troubleshooting
 

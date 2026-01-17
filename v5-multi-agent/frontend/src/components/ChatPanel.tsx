@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import ChatMessage, { CardData } from './ChatMessage'
+import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 
 interface Message {
@@ -9,7 +9,6 @@ interface Message {
     content: string
     role: 'user' | 'assistant'
     isLoading?: boolean
-    cards?: CardData[]
 }
 
 interface ChatPanelProps {
@@ -90,7 +89,6 @@ export default function ChatPanel({
                                 content={msg.content}
                                 role={msg.role}
                                 isLoading={msg.isLoading}
-                                cards={msg.cards}
                             />
                         ))
                     )}
