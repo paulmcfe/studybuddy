@@ -44,7 +44,7 @@ interface AgentStatus {
 }
 
 export default function Home() {
-    // Navigation state
+    // Navigation state 
     const [currentScreen, setCurrentScreen] = useState<'home' | 'study'>('home')
 
     // Chapter selection state
@@ -238,10 +238,10 @@ export default function Home() {
                     scope,
                     card_context: currentCard
                         ? {
-                              question: currentCard.question,
-                              answer: currentCard.answer,
-                              topic: currentCard.topic,
-                          }
+                            question: currentCard.question,
+                            answer: currentCard.answer,
+                            topic: currentCard.topic,
+                        }
                         : undefined,
                 }),
             })
@@ -252,11 +252,11 @@ export default function Home() {
                     prev.map((msg) =>
                         msg.id === assistantMsgId
                             ? {
-                                  ...msg,
-                                  content: data.reply,
-                                  isLoading: false,
-                                  cards: data.cards || undefined,
-                              }
+                                ...msg,
+                                content: data.reply,
+                                isLoading: false,
+                                cards: data.cards || undefined,
+                            }
                             : msg
                     )
                 )
@@ -265,10 +265,10 @@ export default function Home() {
                     prev.map((msg) =>
                         msg.id === assistantMsgId
                             ? {
-                                  ...msg,
-                                  content: 'Sorry, I encountered an error. Please try again.',
-                                  isLoading: false,
-                              }
+                                ...msg,
+                                content: 'Sorry, I encountered an error. Please try again.',
+                                isLoading: false,
+                            }
                             : msg
                     )
                 )
@@ -279,10 +279,10 @@ export default function Home() {
                 prev.map((msg) =>
                     msg.id === assistantMsgId
                         ? {
-                              ...msg,
-                              content: 'Sorry, I encountered an error. Please try again.',
-                              isLoading: false,
-                          }
+                            ...msg,
+                            content: 'Sorry, I encountered an error. Please try again.',
+                            isLoading: false,
+                        }
                         : msg
                 )
             )
