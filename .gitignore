@@ -3,8 +3,9 @@ uv.lock
 dev-docs/
 uploads/
 
-# Node.js (v10 frontend)
+# Node.js / Next.js
 node_modules/
+.next/
 dist/
 
 # Byte-compiled / optimized / DLL files
