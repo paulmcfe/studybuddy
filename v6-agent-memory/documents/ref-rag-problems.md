@@ -217,7 +217,7 @@ relevant_docs = [doc for doc in results if is_relevant(query, doc.page_content)]
 
 ```python
 # Lower temperature for more factual responses
-llm = ChatOpenAI(model="gpt-5-nano", temperature=0)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 ```
 
 ---
@@ -367,7 +367,7 @@ client = QdrantClient(url="http://localhost:6333")  # Server mode
 
 ```python
 # For consistent outputs
-llm = ChatOpenAI(model="gpt-5-nano", temperature=0)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 ```
 
 ---

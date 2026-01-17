@@ -231,11 +231,11 @@ View detailed traces at [smith.langchain.com](https://smith.langchain.com) in th
 ## Cost Considerations
 
 StudyBuddy v6 uses multiple LLM calls per request:
-- Supervisor: gpt-5-nano (routing decision)
-- Tutor: gpt-5-nano (explanations)
+- Supervisor: gpt-4o-mini (routing decision)
+- Tutor: gpt-4o-mini (explanations)
 - Card Generator: gpt-4o-mini (flashcard creation)
-- Quality Checker: gpt-5-nano (validation)
-- Scheduler: gpt-5-nano (recommendations)
+- Quality Checker: gpt-4o-mini (validation)
+- Scheduler: gpt-4o-mini (recommendations)
 
 Flashcard caching significantly reduces costs for repeated topic requests.
 

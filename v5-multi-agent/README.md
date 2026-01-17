@@ -6,7 +6,7 @@ An intelligent AI Engineering tutor that uses a multi-agent architecture with th
 
 StudyBuddy v5 transforms from a single agentic RAG system (v4) into a team of specialized agents:
 
-- **Tutor Agent**: Explains concepts conversationally using gpt-5-nano
+- **Tutor Agent**: Explains concepts conversationally using gpt-4o
 - **Card Generator Agent**: Creates high-quality flashcards using gpt-4o-mini
 - **Quality Checker Agent**: Validates card clarity and usefulness
 - **Learning Coordinator (Supervisor)**: Orchestrates all agents based on student needs
@@ -159,7 +159,7 @@ Traces show:
 | Agent count | 1 (monolithic) | 4 (specialized) |
 | Routing | Simple node graph | Supervisor pattern |
 | Card quality | Generated directly | Generated → Quality checked |
-| Models | gpt-4o-mini only | gpt-5-nano + gpt-4o-mini |
+| Models | gpt-4o-mini only | gpt-4o + gpt-4o-mini |
 
 ## Troubleshooting
 
@@ -173,9 +173,9 @@ Traces show:
 ## Cost Considerations
 
 StudyBuddy v5 uses multiple LLM calls per request:
-- Supervisor: gpt-5-nano (routing decision)
-- Tutor: gpt-5-nano (explanations)
+- Supervisor: gpt-4o (routing decision)
+- Tutor: gpt-4o (explanations)
 - Card Generator: gpt-4o-mini (flashcard creation)
-- Quality Checker: gpt-5-nano (validation)
+- Quality Checker: gpt-4o (validation)
 
 Monitor usage at platform.openai.com/usage.

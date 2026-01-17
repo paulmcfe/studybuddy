@@ -92,7 +92,7 @@ Format: {{"score": N, "explanation": "..."}}
 """
     
     result = client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         input=eval_prompt,
         response_format={"type": "json_object"}
     )

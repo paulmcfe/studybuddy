@@ -9,7 +9,7 @@ Stream LLM responses in real-time for better user experience.
 ```python
 from langchain_openai import ChatOpenAI
 
-llm = ChatOpenAI(model="gpt-5-nano", streaming=True)
+llm = ChatOpenAI(model="gpt-4o-mini", streaming=True)
 
 for chunk in llm.stream("Tell me a story"):
     print(chunk.content, end="", flush=True)
@@ -25,7 +25,7 @@ from openai import OpenAI
 client = OpenAI()
 
 stream = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     input="Write a poem about coding",
     stream=True
 )
@@ -42,7 +42,7 @@ def stream_and_collect(input_text: str, instructions: str = None) -> str:
     """Stream response and return full text."""
     
     stream = client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         input=input_text,
         instructions=instructions,
         stream=True
@@ -67,7 +67,7 @@ async_client = AsyncOpenAI()
 
 async def stream_response(prompt: str):
     stream = await async_client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         input=prompt,
         stream=True
     )
@@ -84,7 +84,7 @@ async def stream_response(prompt: str):
 ```python
 from langchain_openai import ChatOpenAI
 
-llm = ChatOpenAI(model="gpt-5-nano")
+llm = ChatOpenAI(model="gpt-4o-mini")
 
 for chunk in llm.stream("Explain machine learning"):
     print(chunk.content, end="", flush=True)
@@ -191,7 +191,7 @@ client = OpenAI()
 def generate_stream(prompt: str):
     """Generator for streaming response."""
     stream = client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         input=prompt,
         stream=True
     )
@@ -218,7 +218,7 @@ from fastapi.responses import StreamingResponse
 from langchain_openai import ChatOpenAI
 
 app = FastAPI()
-llm = ChatOpenAI(model="gpt-5-nano")
+llm = ChatOpenAI(model="gpt-4o-mini")
 
 async def langchain_stream(prompt: str):
     async for chunk in llm.astream(prompt):
@@ -363,7 +363,7 @@ def stream_with_tools(prompt: str):
     
     while True:
         stream = client.responses.create(
-            model="gpt-5-nano",
+            model="gpt-4o-mini",
             input=context,
             tools=tools,
             stream=True

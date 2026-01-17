@@ -201,8 +201,8 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 # Setup generator
 generator = TestsetGenerator.from_langchain(
-    generator_llm=ChatOpenAI(model="gpt-5-nano"),
-    critic_llm=ChatOpenAI(model="gpt-5-nano"),
+    generator_llm=ChatOpenAI(model="gpt-4o-mini"),
+    critic_llm=ChatOpenAI(model="gpt-4o-mini"),
     embeddings=OpenAIEmbeddings()
 )
 
@@ -232,7 +232,7 @@ client = Client()
 # Evaluate runs from LangSmith
 results = ragas_evaluate(
     dataset_name="my-rag-dataset",
-    llm=ChatOpenAI(model="gpt-5-nano"),
+    llm=ChatOpenAI(model="gpt-4o-mini"),
     metrics=[faithfulness, answer_relevancy]
 )
 ```

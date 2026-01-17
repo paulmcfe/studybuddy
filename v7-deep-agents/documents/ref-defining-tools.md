@@ -19,7 +19,7 @@ def search(query: str) -> str:
 from langchain.agents import create_agent
 
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[search],
     system_prompt="You are a helpful assistant."
 )

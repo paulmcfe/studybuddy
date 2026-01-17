@@ -113,7 +113,7 @@ tools = [search_materials]
 
 # Create the agent using LangChain 1.0 API
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=tools,
     system_prompt=SYSTEM_PROMPT
 )

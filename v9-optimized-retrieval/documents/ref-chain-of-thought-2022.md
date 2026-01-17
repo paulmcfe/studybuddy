@@ -120,7 +120,7 @@ def solve_with_cot(question: str) -> str:
     """Solve problem using chain-of-thought."""
     
     response = client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         input=f"{question}\n\nLet's think step by step."
     )
     
@@ -148,7 +148,7 @@ A: Olivia had $23. 5 bagels at $3 each costs 5 * 3 = $15.
 """
     
     response = client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         input=f"{examples}\nQ: {question}\nA:"
     )
     

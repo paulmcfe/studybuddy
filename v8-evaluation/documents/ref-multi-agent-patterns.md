@@ -80,19 +80,19 @@ from langgraph_supervisor import create_supervisor
 
 # Define worker agents
 researcher = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[search_web, search_papers],
     system_prompt="You are a research specialist. Find and summarize information."
 )
 
 writer = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[],
     system_prompt="You are a writer. Create clear, engaging content from research."
 )
 
 editor = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[grammar_check],
     system_prompt="You are an editor. Improve clarity and fix errors."
 )
@@ -100,7 +100,7 @@ editor = create_agent(
 # Create supervisor
 supervisor = create_supervisor(
     agents=[researcher, writer, editor],
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     system_prompt="""You coordinate a team:
     - Researcher: finds information
     - Writer: creates content

@@ -63,7 +63,7 @@ Available tools:
 ```python
 # Check tools are included
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[search, calculate],  # Make sure tools are listed
     system_prompt=system_prompt
 )
@@ -73,11 +73,11 @@ agent = create_agent(
 
 ```python
 # Ensure you're using a model that supports tools
-# gpt-5-nano, gpt-5 support tools
+# gpt-4o-mini, gpt-4o support tools
 # Some older/smaller models may not
 
 agent = create_agent(
-    model="gpt-5-nano",  # ✓ Supports tools
+    model="gpt-4o-mini",  # ✓ Supports tools
     tools=tools
 )
 ```

@@ -89,7 +89,7 @@ def get_current_date() -> str:
     return date.today().isoformat()
 
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[search_knowledge_base, get_current_date],
     system_prompt="""You are a helpful research assistant. 
     Think step by step before taking actions.
@@ -135,7 +135,7 @@ def run_react_agent(question: str, max_iterations: int = 5):
     
     for i in range(max_iterations):
         response = client.responses.create(
-            model="gpt-5-nano",
+            model="gpt-4o-mini",
             input=conversation
         )
         

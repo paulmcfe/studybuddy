@@ -47,7 +47,7 @@ For "respond", also include:
 }"""
 
 
-def create_supervisor_agent(model_name: str = "gpt-5-nano"):
+def create_supervisor_agent(model_name: str = "gpt-4o"):
     """Create the Supervisor agent."""
     return ChatOpenAI(model=model_name, temperature=0.3)
 

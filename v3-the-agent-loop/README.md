@@ -141,7 +141,7 @@ v3-the-agent-loop/
 from langchain.agents import create_agent
 
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=tools,
     system_prompt=SYSTEM_PROMPT
 )
@@ -294,7 +294,7 @@ In Chapter 4, we'll rebuild using LangGraph for complete control over the agent'
 ## Cost Considerations
 
 StudyBuddy v3 uses:
-- GPT-5-nano for agent reasoning (~$0.15/M input, ~$0.60/M output tokens)
+- GPT-4o-mini for agent reasoning (~$0.15/M input, ~$0.60/M output tokens)
 - text-embedding-3-small for embeddings (~$0.02/M tokens)
 
 Agent conversations may use more tokens due to reasoning traces. A typical conversation costs less than $0.02. Monitor usage at platform.openai.com/usage.

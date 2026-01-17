@@ -192,7 +192,7 @@ Context:
 Question: {question}'''
 
     response = get_client().chat.completions.create(
-        model='gpt-5-nano',
+        model='gpt-4o-mini',
         messages=[{
             'role': 'user',
             'content': prompt

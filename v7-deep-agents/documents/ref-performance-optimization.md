@@ -92,9 +92,9 @@ filtered = [doc for doc, score in results if score >= 0.7][:5]
 def choose_model(query: str) -> str:
     # Simple queries → cheap model
     if is_simple_query(query):
-        return "gpt-5-nano"  # Cheaper
+        return "gpt-4o-mini"  # Cheaper
     # Complex queries → capable model
-    return "gpt-5"  # More expensive
+    return "gpt-4o"  # More expensive
 
 def is_simple_query(query: str) -> bool:
     # Short queries, simple questions

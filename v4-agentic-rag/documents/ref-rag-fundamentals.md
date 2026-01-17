@@ -82,7 +82,7 @@ def answer_question(question: str) -> str:
     
     # Generate response
     response = client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         instructions="Answer based only on the provided context.",
         input=f"Context:\n{context}\n\nQuestion: {question}"
     )

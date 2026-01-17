@@ -212,7 +212,7 @@ In Chapter 3, we'll rebuild StudyBuddy as a proper agent using LangChain 1.0 and
 ## Cost Considerations
 
 StudyBuddy v2 uses:
-- GPT-5-nano for generation (~$0.15/M input, ~$0.60/M output tokens)
+- GPT-4o-mini for generation (~$0.15/M input, ~$0.60/M output tokens)
 - text-embedding-3-small for embeddings (~$0.02/M tokens)
 
 Indexing happens once per session. A typical conversation costs less than $0.01. Monitor usage at platform.openai.com/usage.

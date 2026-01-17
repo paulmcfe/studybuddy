@@ -71,7 +71,7 @@ def create_plan(query: str) -> Plan:
     """Create a plan for accomplishing the task."""
     
     response = client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         instructions="""You are a planning assistant.
 Create detailed, actionable plans for tasks.
 
@@ -91,7 +91,7 @@ def execute_step(step: Step, context: dict) -> str:
     """Execute a single step of the plan."""
     
     response = client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         instructions="Execute the given step using available context.",
         input=f"""Step: {step.action}
 Description: {step.description}
@@ -126,7 +126,7 @@ def synthesize_results(query: str, results: dict) -> str:
     """Combine step results into final response."""
     
     response = client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         input=f"""Original task: {query}
 
 Step results:

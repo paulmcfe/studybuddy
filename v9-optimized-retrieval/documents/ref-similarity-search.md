@@ -125,7 +125,7 @@ Generates multiple query variations for better coverage:
 from langchain.retrievers import MultiQueryRetriever
 from langchain_openai import ChatOpenAI
 
-llm = ChatOpenAI(model="gpt-5-nano", temperature=0)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 multi_retriever = MultiQueryRetriever.from_llm(
     retriever=vector_store.as_retriever(search_kwargs={"k": 5}),

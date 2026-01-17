@@ -167,7 +167,7 @@ class MovieReview(BaseModel):
     cons: list[str]
 
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     input="Review the movie Inception",
     response_format={"type": "json_object"}
 )
@@ -365,14 +365,14 @@ for prompt in prompt_variations:
 ```python
 # Factual task: low temperature
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     input="What is the capital of France?",
     temperature=0.0
 )
 
 # Creative task: higher temperature  
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     input="Write a short poem about coding",
     temperature=0.8
 )

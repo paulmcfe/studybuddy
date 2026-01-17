@@ -211,10 +211,10 @@ def get_topics_for_scope(chapter_id: int, scope: str) -> list[dict]:
 # ============== Agent Setup ==============
 
 # Create the specialized agents
-tutor_llm = create_tutor_agent("gpt-5-nano")
+tutor_llm = create_tutor_agent("gpt-4o")
 card_generator_llm = create_card_generator_agent("gpt-4o-mini")
-quality_checker_llm = create_quality_checker_agent("gpt-5-nano")
-supervisor_llm = create_supervisor_agent("gpt-5-nano")
+quality_checker_llm = create_quality_checker_agent("gpt-4o")
+supervisor_llm = create_supervisor_agent("gpt-4o")
 
 
 def search_materials(query: str, k: int = 4) -> str:
@@ -446,6 +446,7 @@ class FlashcardRequest(BaseModel):
     chapter_id: int
     scope: str = "single"
     current_topic: Optional[str] = None
+    previous_question: Optional[str] = None
 
 
 class FlashcardResponse(BaseModel):
@@ -550,7 +551,9 @@ def generate_flashcard(request: FlashcardRequest):
     context = search_materials(topic_name, k=4)
 
     # Generate card
-    card = generate_single_card(card_generator_llm, topic_name, subtopics, context)
+    card = generate_single_card(
+        card_generator_llm, topic_name, subtopics, context, request.previous_question
+    )
     if card is None:
         raise HTTPException(status_code=500, detail="Failed to generate flashcard")
 

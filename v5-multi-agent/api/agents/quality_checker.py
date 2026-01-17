@@ -35,7 +35,7 @@ If a card has minor issues, provide a revised version rather than rejecting.
 Only reject cards with fundamental problems (vague, incorrect, or confusing)."""
 
 
-def create_quality_checker_agent(model_name: str = "gpt-5-nano"):
+def create_quality_checker_agent(model_name: str = "gpt-4o"):
     """Create the Quality Checker agent."""
     return ChatOpenAI(model=model_name, temperature=0.2)
 

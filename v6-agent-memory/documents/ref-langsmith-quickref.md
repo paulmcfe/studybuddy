@@ -28,7 +28,7 @@ LangChain and LangGraph automatically trace when environment variables are set:
 from langchain_openai import ChatOpenAI
 
 # This call is automatically traced
-llm = ChatOpenAI(model="gpt-5-nano")
+llm = ChatOpenAI(model="gpt-4o-mini")
 response = llm.invoke("Hello")
 ```
 
@@ -57,7 +57,7 @@ from langsmith import trace
 with trace("my-operation", inputs={"query": "test"}) as t:
     result = do_something()
     t.outputs = {"result": result}
-    t.metadata = {"model": "gpt-5-nano"}
+    t.metadata = {"model": "gpt-4o-mini"}
 ```
 
 ### Nested Traces

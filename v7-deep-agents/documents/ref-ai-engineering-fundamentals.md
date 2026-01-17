@@ -4,7 +4,7 @@
 
 AI Engineering is the discipline of building applications powered by large language models. While it shares DNA with both machine learning engineering and traditional software engineering, it's distinct from both.
 
-Traditional ML engineering requires deep expertise in model architecture, training pipelines, and mathematical foundations. You're working with data scientists to prepare training data, tune hyperparameters, and optimize model performance. AI Engineering, by contrast, treats models as APIs. You're not training GPT-5—you're building applications that use it. The skills shift from model internals to prompt design, context management, and system architecture.
+Traditional ML engineering requires deep expertise in model architecture, training pipelines, and mathematical foundations. You're working with data scientists to prepare training data, tune hyperparameters, and optimize model performance. AI Engineering, by contrast, treats models as APIs. You're not training GPT-5, you're building applications that use it. The skills shift from model internals to prompt design, context management, and system architecture.
 
 AI Engineering also differs from traditional software engineering, though it builds heavily on those foundations. The key difference is non-determinism. Traditional code does exactly what you tell it, every time. LLM-powered applications are probabilistic—the same input can produce different outputs, and you need to design systems that handle this gracefully.
 

@@ -32,7 +32,7 @@ uv pip install langchain-community   # Document loaders, etc.
 from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     temperature=0,
     max_tokens=1000
 )
@@ -112,7 +112,7 @@ def calculator(expression: str) -> str:
 
 # Create agent
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[search_documents, calculator],
     system_prompt="You are a helpful assistant. Use tools when needed."
 )
@@ -138,7 +138,7 @@ memory = ConversationBufferMemory(
 )
 
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[search_documents],
     system_prompt="You are a helpful assistant.",
     memory=memory
@@ -456,7 +456,7 @@ from langchain.memory import ConversationBufferWindowMemory
 memory = ConversationBufferWindowMemory(k=10, return_messages=True)
 
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[search_documents, calculator],
     system_prompt="You are a helpful assistant with access to tools.",
     memory=memory
@@ -480,7 +480,7 @@ from langchain.agents import create_agent
 agent = initialize_agent(tools, llm, agent="zero-shot-react-description")
 
 # NEW
-agent = create_agent(model="gpt-5-nano", tools=tools, system_prompt="...")
+agent = create_agent(model="gpt-4o-mini", tools=tools, system_prompt="...")
 ```
 
 ## Related Resources

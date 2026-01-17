@@ -2,7 +2,7 @@
 
 ## Overview
 
-OpenAI provides APIs for language models (GPT-5, GPT-5-nano), embeddings, and other AI capabilities. The Python SDK was significantly updated in 2025 with the Responses API as the primary interface.
+OpenAI provides APIs for language models (GPT-5, GPT-4o, GPT-4o-mini), embeddings, and other AI capabilities. The Python SDK was significantly updated in 2025 with the Responses API as the primary interface.
 
 ## Installation
 
@@ -36,7 +36,7 @@ The Responses API is the recommended interface for most use cases.
 
 ```python
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     input="What is the capital of France?"
 )
 
@@ -47,7 +47,7 @@ print(response.output_text)
 
 ```python
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     instructions="You are a helpful tutor. Explain concepts clearly and concisely.",
     input="What is machine learning?"
 )
@@ -59,7 +59,7 @@ print(response.output_text)
 
 ```python
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     instructions="Answer based only on the provided context. If the answer isn't in the context, say so.",
     input="What is the main topic?",
     context="The document discusses machine learning algorithms and their applications in natural language processing..."
@@ -72,7 +72,7 @@ print(response.output_text)
 
 ```python
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     instructions="You are a creative writing assistant.",
     input="Write a haiku about coding",
     temperature=0.7,      # 0-2, higher = more creative
@@ -84,7 +84,7 @@ response = client.responses.create(
 
 ```python
 stream = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     input="Tell me a story about a robot",
     stream=True
 )
@@ -124,7 +124,7 @@ tools = [
 ]
 
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     input="What's the weather in Tokyo?",
     tools=tools
 )
@@ -144,7 +144,7 @@ if response.tool_calls:
         
         # Send result back for final response
         final = client.responses.create(
-            model="gpt-5-nano",
+            model="gpt-4o-mini",
             input=f"Tool result: {json.dumps(result)}",
             instructions="Use the tool result to answer the user's question."
         )
@@ -157,7 +157,7 @@ if response.tool_calls:
 
 ```python
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     input="List 3 programming languages with their main use cases",
     instructions="Respond with valid JSON only. No markdown, no explanation.",
     response_format={"type": "json_object"}
@@ -177,7 +177,7 @@ class Analysis(BaseModel):
     keywords: list[str]
 
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     input="Analyze: I love this product!",
     response_format={
         "type": "json_schema",
@@ -233,7 +233,7 @@ response = client.embeddings.create(
 
 ```python
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     input=[
         {"type": "text", "text": "What's in this image?"},
         {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}}
@@ -252,7 +252,7 @@ with open("image.png", "rb") as f:
     image_data = base64.standard_b64encode(f.read()).decode("utf-8")
 
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     input=[
         {"type": "text", "text": "Describe this image"},
         {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_data}"}}
@@ -271,7 +271,7 @@ client = AsyncOpenAI()
 
 async def get_response(prompt: str) -> str:
     response = await client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         input=prompt
     )
     return response.output_text
@@ -279,7 +279,7 @@ async def get_response(prompt: str) -> str:
 # Async streaming
 async def stream_response(prompt: str):
     stream = await client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         input=prompt,
         stream=True
     )
@@ -301,7 +301,7 @@ from openai import (
 
 try:
     response = client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         input="Hello"
     )
 except AuthenticationError:
@@ -324,7 +324,7 @@ def call_with_retry(input_text: str, max_retries: int = 3):
     for attempt in range(max_retries):
         try:
             return client.responses.create(
-                model="gpt-5-nano",
+                model="gpt-4o-mini",
                 input=input_text
             )
         except RateLimitError:
@@ -341,9 +341,9 @@ def call_with_retry(input_text: str, max_retries: int = 3):
 
 | Model | Context | Use Case |
 |-------|---------|----------|
-| gpt-5 | 128K | Most capable |
-| gpt-5-nano | 128K | Fast, cost-effective |
-| gpt-5-mini | 128K | Balanced |
+| gpt-4o | 128K | Most capable |
+| gpt-4o-mini | 128K | Fast, cost-effective |
+| gpt-4o-mini | 128K | Balanced |
 | text-embedding-3-small | 8K | Embeddings (1536d) |
 | text-embedding-3-large | 8K | Embeddings (3072d) |
 
@@ -360,12 +360,12 @@ for model in models.data:
 ```python
 import tiktoken
 
-def count_tokens(text: str, model: str = "gpt-5-nano") -> int:
+def count_tokens(text: str, model: str = "gpt-4o-mini") -> int:
     encoding = tiktoken.encoding_for_model(model)
     return len(encoding.encode(text))
 
 # Count message tokens
-def count_message_tokens(messages: list, model: str = "gpt-5-nano") -> int:
+def count_message_tokens(messages: list, model: str = "gpt-4o-mini") -> int:
     encoding = tiktoken.encoding_for_model(model)
     total = 0
     for message in messages:
@@ -391,7 +391,7 @@ Rules:
 - Keep responses concise"""
 
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     instructions=instructions,
     input="How do I read a CSV file?"
 )
@@ -401,11 +401,11 @@ response = client.responses.create(
 
 ```python
 # Use appropriate model for task
-# gpt-5-nano for simple tasks, gpt-5 for complex reasoning
+# gpt-4o-mini for simple tasks, gpt-4o for complex reasoning
 
 # Set max_tokens to limit response length
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     input="Explain quantum computing",
     max_tokens=500  # Limit output
 )

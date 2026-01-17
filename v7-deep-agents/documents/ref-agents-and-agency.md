@@ -185,7 +185,7 @@ def search_docs(query: str) -> str:
 
 # Create agent
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[calculator, search_docs],
     system_prompt="You are a helpful assistant. Use tools when needed."
 )

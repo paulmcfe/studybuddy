@@ -53,14 +53,14 @@ def reflect_and_improve(query: str, max_iterations: int = 3) -> str:
     
     # Initial generation
     response = client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         input=query
     ).output_text
     
     for iteration in range(max_iterations):
         # Reflection step
         critique = client.responses.create(
-            model="gpt-5-nano",
+            model="gpt-4o-mini",
             input=f"""Critique this response:
 
 Query: {query}
@@ -82,7 +82,7 @@ Otherwise, list specific improvements needed."""
         
         # Revision step
         response = client.responses.create(
-            model="gpt-5-nano",
+            model="gpt-4o-mini",
             input=f"""Improve this response based on the critique:
 
 Original query: {query}
@@ -127,7 +127,7 @@ Return:
 }}"""
     
     result = client.responses.create(
-        model="gpt-5-nano",
+        model="gpt-4o-mini",
         input=critique_prompt,
         response_format={"type": "json_object"}
     )
@@ -154,7 +154,7 @@ def multi_aspect_reflection(query: str, response: str) -> dict:
     critiques = {}
     for aspect, question in aspects.items():
         critique = client.responses.create(
-            model="gpt-5-nano",
+            model="gpt-4o-mini",
             input=f"""Evaluate this response:
 
 Query: {query}
@@ -375,7 +375,7 @@ Separate agent dedicated to critique:
 
 ```python
 critic_agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[search_facts, check_logic],
     system_prompt="""You are a critical reviewer.
 

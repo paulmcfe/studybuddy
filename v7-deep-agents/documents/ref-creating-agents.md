@@ -22,7 +22,7 @@ def calculate(expression: str) -> str:
 
 # Create agent
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[search, calculate],
     system_prompt="You are a helpful assistant."
 )
@@ -56,7 +56,7 @@ def search_documents(query: str) -> str:
     return "\n".join([doc.page_content for doc in results])
 
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[get_weather, search_documents],
     system_prompt="""You are a helpful assistant with access to weather and document search.
     
@@ -118,7 +118,7 @@ def search(query: str) -> str:
     return f"Found: {query} results"
 
 tools = [search]
-model = ChatOpenAI(model="gpt-5-nano").bind_tools(tools)
+model = ChatOpenAI(model="gpt-4o-mini").bind_tools(tools)
 
 def agent_node(state: AgentState):
     response = model.invoke(state["messages"])
@@ -227,7 +227,7 @@ def search_knowledge_base(query: str) -> str:
     ])
 
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[search_knowledge_base],
     system_prompt="""You are a helpful assistant with access to a knowledge base.
 
@@ -262,7 +262,7 @@ def get_date() -> str:
     return datetime.now().strftime("%Y-%m-%d")
 
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[search_web, search_documents, calculate, get_date],
     system_prompt="""You are a helpful assistant with multiple capabilities.
 

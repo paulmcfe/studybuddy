@@ -72,7 +72,7 @@ Specialized agents focused on specific capabilities:
 ```python
 # Researcher
 researcher = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[search_web, search_documents, search_papers],
     system_prompt="""You are a research specialist.
     
@@ -88,7 +88,7 @@ researcher = create_agent(
 
 # Writer  
 writer = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[],  # Writers typically don't need tools
     system_prompt="""You are a content writer.
     
@@ -104,7 +104,7 @@ writer = create_agent(
 
 # Editor
 editor = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[grammar_check, readability_score],
     system_prompt="""You are an editor.
     
@@ -139,7 +139,7 @@ supervisor = create_supervisor(
         "writer": writer,
         "editor": editor
     },
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     system_prompt=SUPERVISOR_PROMPT
 )
 
@@ -454,7 +454,7 @@ Supervisor remembers past interactions to improve delegation:
 
 ```python
 supervisor_with_memory = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[manage_memory, search_memory, *delegation_tools],
     system_prompt="""You are a supervisor with memory.
     

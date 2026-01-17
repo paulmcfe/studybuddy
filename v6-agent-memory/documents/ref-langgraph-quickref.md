@@ -122,7 +122,7 @@ def search(query: str) -> str:
     return f"Results for: {query}"
 
 tools = [search]
-model = ChatOpenAI(model="gpt-5-nano").bind_tools(tools)
+model = ChatOpenAI(model="gpt-4o-mini").bind_tools(tools)
 
 def agent_node(state: AgentState):
     response = model.invoke(state["messages"])
@@ -311,13 +311,13 @@ app.invoke(None, config)  # Continues from checkpoint
 from langgraph_supervisor import create_supervisor
 
 # Define worker agents
-researcher = create_agent(model="gpt-5-nano", tools=[search_tool])
-writer = create_agent(model="gpt-5-nano", tools=[])
+researcher = create_agent(model="gpt-4o-mini", tools=[search_tool])
+writer = create_agent(model="gpt-4o-mini", tools=[])
 
 # Create supervisor
 supervisor = create_supervisor(
     agents={"researcher": researcher, "writer": writer},
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     system_prompt="Coordinate research and writing tasks."
 )
 
@@ -375,7 +375,7 @@ for event in app.stream(state, stream_mode="debug"):
 from langgraph.prebuilt import create_react_agent
 
 agent = create_react_agent(
-    model=ChatOpenAI(model="gpt-5-nano"),
+    model=ChatOpenAI(model="gpt-4o-mini"),
     tools=[search, calculate],
     state_modifier="You are a helpful assistant."
 )

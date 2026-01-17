@@ -45,7 +45,7 @@ tools = [
 
 # Call with tools
 response = client.responses.create(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     input="What's the weather in Tokyo?",
     tools=tools
 )

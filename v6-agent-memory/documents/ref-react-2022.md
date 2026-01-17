@@ -139,7 +139,7 @@ Thought 1:
 from langchain.agents import create_agent
 
 agent = create_agent(
-    model="gpt-5-nano",
+    model="gpt-4o-mini",
     tools=[search_tool, lookup_tool],
     system_prompt="Think step-by-step before using tools."
 )
