@@ -2,6 +2,8 @@
 
 This is the main FastAPI application that orchestrates multiple specialized
 agents using the supervisor pattern to provide an intelligent tutoring experience.
+
+Deployed via Vercel with Next.js frontend.
 """
 
 from fastapi import FastAPI, HTTPException
