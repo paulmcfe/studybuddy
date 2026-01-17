@@ -10,6 +10,11 @@
       "use": "@vercel/next"
     }
   ],
+  "functions": {
+    "v5-multi-agent/api/index.py": {
+      "includeFiles": "v5-multi-agent/documents/**"
+    }
+  },
   "routes": [
     { "src": "/api/(.*)", "dest": "/v5-multi-agent/api/index.py" },
     { "src": "/(.*)", "dest": "/v5-multi-agent/frontend/$1" }
