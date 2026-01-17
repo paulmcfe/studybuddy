@@ -88,7 +88,7 @@ export default function Home() {
                     return data.indexing_complete
                 }
             } catch (err) {
-                console.error('The status check failed:', err)
+                console.error('Status check failed:', err)
             }
             return false
         }
