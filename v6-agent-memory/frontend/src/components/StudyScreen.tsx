@@ -10,7 +10,6 @@ interface FlashcardData {
     answer: string
     topic: string
     source: 'rag' | 'llm'
-    flashcard_id?: string
 }
 
 interface StudyScreenProps {
@@ -21,7 +20,6 @@ interface StudyScreenProps {
     onReview: (button: 'no' | 'took_a_sec' | 'yes') => void
     onOpenChat: () => void
     onBack: () => void
-    statusMessage?: string
 }
 
 export default function StudyScreen({
@@ -32,7 +30,6 @@ export default function StudyScreen({
     onReview,
     onOpenChat,
     onBack,
-    statusMessage = '',
 }: StudyScreenProps) {
     const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
@@ -112,13 +109,6 @@ export default function StudyScreen({
                     <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-2">
                         Press Space to flip card
                     </p>
-                </div>
-            )}
-
-            {/* Status bar - mobile only (sidebar shows status on desktop) */}
-            {statusMessage && (
-                <div className="sm:hidden py-3 px-4 text-center text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-                    {statusMessage}
                 </div>
             )}
 

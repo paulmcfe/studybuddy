@@ -17,10 +17,9 @@ interface SidebarProps {
     chapter: Chapter | null
     scope: 'single' | 'cumulative'
     agentStatus: AgentStatus | null
-    statusMessage?: string
 }
 
-export default function Sidebar({ chapter, scope, agentStatus, statusMessage = '' }: SidebarProps) {
+export default function Sidebar({ chapter, scope, agentStatus }: SidebarProps) {
     return (
         <aside className="hidden sm:flex flex-col w-64 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4">
             <div className="space-y-6">
@@ -94,15 +93,6 @@ export default function Sidebar({ chapter, scope, agentStatus, statusMessage = '
                     </div>
                 </div>
             </div>
-
-            {/* Status message at bottom */}
-            {statusMessage && (
-                <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                        {statusMessage}
-                    </p>
-                </div>
-            )}
         </aside>
     )
 }

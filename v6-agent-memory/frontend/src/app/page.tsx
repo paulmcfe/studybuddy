@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import HomeScreen from '../components/HomeScreen'
 import StudyScreen from '../components/StudyScreen'
 import ChatPanel from '../components/ChatPanel'
@@ -18,7 +18,6 @@ interface Flashcard {
     answer: string
     topic: string
     source: 'rag' | 'llm'
-    flashcard_id?: string
 }
 
 interface ChatMessage {
@@ -33,13 +32,6 @@ interface AgentStatus {
     documents_indexed: number
     chunks_in_db: number
     current_file: string
-}
-
-interface PrefetchStatus {
-    state: 'idle' | 'in_progress' | 'completed'
-    completed_topics: number
-    total_topics: number
-    cards_generated: number
 }
 
 export default function Home() {
@@ -63,45 +55,18 @@ export default function Home() {
 
     // Status state
     const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null)
-    const [statusMessage, setStatusMessage] = useState<string>('')
-    const statusTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-    // Prefetch state
-    const [prefetchStatus, setPrefetchStatus] = useState<Record<number, PrefetchStatus>>({})
 
     // Get current chapter object
     const currentChapter = chapters.find((c) => c.id === selectedChapter) || null
 
-    // Show status message with auto-clear
-    const showStatus = useCallback((message: string, duration = 3000) => {
-        if (statusTimeoutRef.current) {
-            clearTimeout(statusTimeoutRef.current)
-        }
-        setStatusMessage(message)
-        if (duration > 0) {
-            statusTimeoutRef.current = setTimeout(() => {
-                setStatusMessage('')
-            }, duration)
-        }
-    }, [])
-
-    // Status message for home screen (indexing or prefetch progress)
-    const getStatusMessage = useCallback(() => {
+    // Status message for home screen
+    const getStatusMessage = () => {
         if (!agentStatus) return 'Connecting to agent...'
         if (!agentStatus.indexing_complete) {
             return `Indexing "${agentStatus.current_file}"... (${agentStatus.chunks_in_db} chunks)`
         }
-        // Check for active prefetch
-        if (selectedChapter && prefetchStatus[selectedChapter]?.state === 'in_progress') {
-            const ps = prefetchStatus[selectedChapter]
-            return `Caching cards: ${ps.completed_topics}/${ps.total_topics} topics...`
-        }
-        // Show persistent status message if set
-        if (statusMessage) {
-            return statusMessage
-        }
         return `${agentStatus.documents_indexed} guides indexed (${agentStatus.chunks_in_db} chunks)`
-    }, [agentStatus, selectedChapter, prefetchStatus, statusMessage])
+    }
 
     // Poll status until indexing complete
     useEffect(() => {
@@ -136,11 +101,9 @@ export default function Home() {
                 .then((res) => res.json())
                 .then((data) => {
                     setChapters(data.chapters || [])
-                    // Auto-select first chapter and trigger prefetch
+                    // Auto-select first chapter
                     if (data.chapters?.length > 0) {
-                        const firstChapterId = data.chapters[0].id
-                        setSelectedChapter(firstChapterId)
-                        triggerPrefetch(firstChapterId)
+                        setSelectedChapter(data.chapters[0].id)
                     }
                 })
                 .catch((err) => console.error('Failed to load chapters:', err))
@@ -177,64 +140,6 @@ export default function Home() {
         window.addEventListener('keydown', handleKeyDown)
         return () => window.removeEventListener('keydown', handleKeyDown)
     }, [currentScreen, chatOpen])
-
-    // Background prefetch
-    const triggerPrefetch = async (chapterId: number) => {
-        try {
-            const res = await fetch('/api/prefetch', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chapter_id: chapterId }),
-            })
-            if (res.ok) {
-                const data = await res.json()
-                if (data.state === 'started' || data.state === 'already_in_progress') {
-                    pollPrefetchStatus(chapterId)
-                }
-            }
-        } catch (err) {
-            // Prefetch is non-critical, silently fail
-            console.log('Prefetch request failed (non-critical):', err)
-        }
-    }
-
-    const pollPrefetchStatus = async (chapterId: number) => {
-        try {
-            const res = await fetch(`/api/prefetch-status/${chapterId}`)
-            if (res.ok) {
-                const status = await res.json()
-                setPrefetchStatus((prev) => ({ ...prev, [chapterId]: status }))
-                if (status.state === 'in_progress') {
-                    setTimeout(() => pollPrefetchStatus(chapterId), 2000)
-                } else if (status.state === 'completed') {
-                    showStatus(`${status.cards_generated} cards cached`)
-                }
-            }
-        } catch (err) {
-            console.log('Prefetch status poll failed:', err)
-        }
-    }
-
-    // Record review to the API
-    const recordReview = async (flashcardId: string, button: 'no' | 'took_a_sec' | 'yes') => {
-        try {
-            const res = await fetch('/api/review', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ flashcard_id: flashcardId, button }),
-            })
-            if (res.ok) {
-                const data = await res.json()
-                const days = data.interval_days
-                const msg = days === 1
-                    ? "You'll see this card again in 1 day"
-                    : `You'll see this card again in ${days} days`
-                showStatus(msg)
-            }
-        } catch (err) {
-            console.error('Failed to record review:', err)
-        }
-    }
 
     // Fetch flashcard
     const fetchFlashcard = useCallback(
@@ -284,28 +189,15 @@ export default function Home() {
         setChatOpen(false)
     }
 
-    const handleChapterChange = (chapterId: number | null) => {
-        setSelectedChapter(chapterId)
-        // Trigger prefetch when chapter is selected
-        if (chapterId) {
-            triggerPrefetch(chapterId)
-        }
-    }
-
-    const handleReview = async (button: 'no' | 'took_a_sec' | 'yes') => {
-        // Record the review if we have a flashcard_id
-        if (currentCard?.flashcard_id) {
-            await recordReview(currentCard.flashcard_id, button)
-        }
-
+    const handleReview = (button: 'no' | 'took_a_sec' | 'yes') => {
         // Fetch next card based on review result
         if (button === 'no') {
-            // Same topic, different question (like old Study More)
+            // Same topic, different question
             if (currentCard) {
                 fetchFlashcard(currentCard.topic, currentCard.question)
             }
         } else {
-            // New random topic (like old Got It)
+            // New random topic
             fetchFlashcard()
         }
     }
@@ -404,7 +296,6 @@ export default function Home() {
                     chapter={currentChapter}
                     scope={scope}
                     agentStatus={agentStatus}
-                    statusMessage={statusMessage}
                 />
             )}
 
@@ -415,7 +306,7 @@ export default function Home() {
                         chapters={chapters}
                         selectedChapter={selectedChapter}
                         scope={scope}
-                        onChapterChange={handleChapterChange}
+                        onChapterChange={setSelectedChapter}
                         onScopeChange={setScope}
                         onStart={handleStartStudy}
                         disabled={!agentStatus?.indexing_complete}
@@ -430,7 +321,6 @@ export default function Home() {
                         onReview={handleReview}
                         onOpenChat={handleOpenChat}
                         onBack={handleBack}
-                        statusMessage={statusMessage}
                     />
                 )}
             </main>

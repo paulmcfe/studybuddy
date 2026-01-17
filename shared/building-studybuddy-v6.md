@@ -387,6 +387,93 @@ createdb studybuddy
 
 This clean-slate approach takes seconds. When your local data gets messy from testing, just drop and recreate.
 
+## A Note on the UI
+
+The code examples above focus on the core multi-agent architecture. The actual StudyBuddy v6 implementation extends this with a flashcard-first user interface, where students see flashcards as their primary study mode, with chat available as a secondary feature for deeper exploration.
+
+This required a few additions to the API layer:
+
+- /api/chapters endpoint that parses a topic-list.md file for chapter/topic navigation.
+- /api/flashcard endpoint that generates scoped flashcards using the Card Generator and Quality Checker agents.
+- card_context parameter in the chat endpoint so the tutor knows what flashcard you're studying.
+
+The chat feature focuses on tutoring—answering questions and explaining concepts—while flashcard generation is handled separately by the dedicated /api/flashcard endpoint. This separation keeps chat responses clean and focused.
+
+The v6 frontend uses a three-button review system (No / Took a sec / Yes) instead of the two-button system in v5 (Got It / Study More). This maps to spaced repetition quality ratings, though the current implementation uses these buttons primarily to control card flow: "No" fetches another card on the same topic, while "Took a sec" or "Yes" moves to a new random topic.
+
+## Running locally
+
+StudyBuddy v6 runs with two terminals—one for the backend, one for the frontend.
+
+**Terminal 1 - Backend:**
+```bash
+cd v6-agent-memory
+uv run uvicorn api.index:app --reload --port 8000
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd v6-agent-memory/frontend
+npm run dev
+```
+
+Visit http://localhost:3000. The Next.js dev server proxies `/api/*` requests to the FastAPI backend on port 8000 (configured in `next.config.ts`).
+
+## Deploying to Vercel
+
+To deploy v6 to Vercel, you need to update two files in the repo root.
+
+First, update vercel.json to point to the v6-agent-memory directory:
+
+```json
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "v6-agent-memory/api/index.py",
+            "use": "@vercel/python"
+        },
+        {
+            "src": "v6-agent-memory/frontend/package.json",
+            "use": "@vercel/next"
+        }
+    ],
+    "routes": [
+        { "src": "/api/(.*)", "dest": "/v6-agent-memory/api/index.py" },
+        { "src": "/(.*)", "dest": "/v6-agent-memory/frontend/$1" }
+    ],
+    "git": {
+        "deploymentEnabled": {
+            "main": true
+        }
+    },
+    "ignoreCommand": "bash scripts/should-deploy.sh"
+}
+```
+
+Second, update scripts/should-deploy.sh to trigger on v6 changes:
+
+```bash
+#!/bin/bash
+# Deploy if changes are in v6-agent-memory, vercel config, or scripts
+# Exit 1 (true) = proceed with build, Exit 0 (false) = skip build
+git diff HEAD^ HEAD --name-only | grep -qE "^v6-agent-memory/|^vercel\.json|^scripts/" && exit 1 || exit 0
+```
+
+If you haven't done so already, set your OpenAI API key environment variable in Vercel:
+
+```
+vercel env add OPENAI_API_KEY
+```
+
+Deploy:
+
+```
+vercel --prod
+```
+
+Or simply push to GitHub. Vercel will automatically deploy when changes are detected in the v6-agent-memory directory.
+
 ## What's Next
 
 StudyBuddy v6 is a major upgrade. We've added persistence that survives restarts, intelligent caching that cuts costs, and spaced repetition that optimizes learning. The system now genuinely learns about users and adapts to their needs.
