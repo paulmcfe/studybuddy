@@ -131,8 +131,14 @@ export default function Home() {
             }
 
             if (e.code === 'Space' && currentScreen === 'study' && !chatOpen) {
+                // Prevent page scroll
                 e.preventDefault()
-                setIsFlipped((prev) => !prev)
+                // Only flip if the flashcard itself isn't handling this event
+                // (flashcard has role="button" and handles Space via onKeyDown)
+                const target = e.target as HTMLElement
+                if (!target.closest('.flashcard')) {
+                    setIsFlipped((prev) => !prev)
+                }
             }
 
             if (e.code === 'Escape' && chatOpen) {

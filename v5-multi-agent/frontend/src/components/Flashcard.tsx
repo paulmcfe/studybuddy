@@ -22,6 +22,7 @@ export default function Flashcard({ card, isFlipped, onFlip }: FlashcardProps) {
                 onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
+                        e.stopPropagation()
                         onFlip()
                     }
                 }}
