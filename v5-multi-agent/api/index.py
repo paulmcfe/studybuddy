@@ -479,29 +479,23 @@ def get_debug():
     file_path = Path(__file__)
     documents_dir = file_path.parent.parent / "documents"
 
-    # List what's in the parent directories
-    parent_contents = []
+    # List documents directory contents
+    doc_contents = []
+    ref_files = []
     try:
-        parent_contents = list(file_path.parent.parent.iterdir())
+        doc_contents = list(documents_dir.iterdir())
+        ref_files = sorted(documents_dir.glob("ref-*.md"))
     except Exception as e:
-        parent_contents = [f"Error: {e}"]
-
-    api_contents = []
-    try:
-        api_contents = list(file_path.parent.iterdir())
-    except Exception as e:
-        api_contents = [f"Error: {e}"]
+        doc_contents = [f"Error: {e}"]
 
     return {
         "__file__": str(file_path),
-        "file_exists": file_path.exists(),
-        "parent": str(file_path.parent),
-        "parent_parent": str(file_path.parent.parent),
         "documents_dir": str(documents_dir),
         "documents_exists": documents_dir.exists(),
-        "parent_parent_contents": [str(p) for p in parent_contents],
-        "api_contents": [str(p) for p in api_contents],
-        "cwd": os.getcwd(),
+        "documents_contents": [str(p) for p in doc_contents],
+        "ref_files_found": [str(p) for p in ref_files],
+        "ref_files_count": len(ref_files),
+        "indexing_status": indexing_status,
         "IS_VERCEL": IS_VERCEL,
     }
 
