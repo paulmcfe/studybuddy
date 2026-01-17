@@ -20,20 +20,11 @@ interface Flashcard {
     source: 'rag' | 'llm'
 }
 
-interface CardData {
-    question: string
-    answer: string
-    topic: string
-    difficulty?: 'basic' | 'intermediate' | 'advanced'
-    source?: string
-}
-
 interface ChatMessage {
     id: string
     content: string
     role: 'user' | 'assistant'
     isLoading?: boolean
-    cards?: CardData[]
 }
 
 interface AgentStatus {
@@ -261,7 +252,6 @@ export default function Home() {
                                 ...msg,
                                 content: data.reply,
                                 isLoading: false,
-                                cards: data.cards || undefined,
                             }
                             : msg
                     )

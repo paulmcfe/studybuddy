@@ -439,7 +439,6 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
-    cards: list[dict] = []
 
 
 class FlashcardRequest(BaseModel):
@@ -513,7 +512,6 @@ def chat(request: ChatRequest):
 
         return ChatResponse(
             reply=result.get("response", "I couldn't generate a response."),
-            cards=result.get("approved_cards", []),
         )
 
     except Exception as e:
