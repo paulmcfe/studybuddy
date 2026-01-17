@@ -472,36 +472,6 @@ def get_status():
     }
 
 
-@app.get("/api/debug")
-def get_debug():
-    """Debug endpoint to diagnose path issues on Vercel."""
-    import os
-    from pathlib import Path
-
-    file_path = Path(__file__)
-    documents_dir = file_path.parent.parent / "documents"
-
-    # List documents directory contents
-    doc_contents = []
-    ref_files = []
-    try:
-        doc_contents = list(documents_dir.iterdir())
-        ref_files = sorted(documents_dir.glob("ref-*.md"))
-    except Exception as e:
-        doc_contents = [f"Error: {e}"]
-
-    return {
-        "__file__": str(file_path),
-        "documents_dir": str(documents_dir),
-        "documents_exists": documents_dir.exists(),
-        "documents_contents": [str(p) for p in doc_contents],
-        "ref_files_found": [str(p) for p in ref_files],
-        "ref_files_count": len(ref_files),
-        "indexing_status": indexing_status,
-        "IS_VERCEL": IS_VERCEL,
-    }
-
-
 @app.get("/api/chapters")
 def get_chapters():
     """Get all chapters parsed from topic-list.md."""
