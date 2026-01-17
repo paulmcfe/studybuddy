@@ -44,7 +44,7 @@ interface AgentStatus {
 }
 
 export default function Home() {
-    // Navigation state 
+    // Navigation state
     const [currentScreen, setCurrentScreen] = useState<'home' | 'study'>('home')
 
     // Chapter selection state
@@ -88,7 +88,7 @@ export default function Home() {
                     return data.indexing_complete
                 }
             } catch (err) {
-                console.error('Status check failed:', err)
+                console.error('The status check failed:', err)
             }
             return false
         }
