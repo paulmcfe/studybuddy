@@ -49,6 +49,7 @@ StudyBuddy v7 transforms from a reactive multi-agent system (v6) into a proactiv
 ## Prerequisites
 
 - Python 3.12+
+- Node.js 18+
 - OpenAI API key
 - LangSmith API key (optional, for tracing)
 
@@ -60,30 +61,48 @@ StudyBuddy v7 transforms from a reactive multi-agent system (v6) into a proactiv
 cd studybuddy/v7-deep-agents
 ```
 
-### 2. Create virtual environment
+### 2. Set up the backend
 
 ```bash
+# Create .env file
+echo "OPENAI_API_KEY=your-key-here" > .env
+
+# Create virtual environment and install dependencies
 uv sync
 ```
 
-### 3. Configure environment variables
+### 3. Set up the frontend
 
-Create or update `.env`:
-
+```bash
+cd frontend
+npm install
+cd ..
 ```
-OPENAI_API_KEY=sk-your-key-here
-LANGSMITH_API_KEY=lsv2_your-key-here
-```
 
-### 4. Run the server
+### 4. Run the app (two terminals)
 
+**Terminal 1 - Backend:**
 ```bash
 uv run uvicorn api.index:app --reload --port 8000
 ```
 
+You'll see indexing progress in the terminal:
+```
+Server started. Document indexing running in background...
+Indexing reference guides...
+...
+Agent ready!
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+
 ### 5. Open the app
 
-Visit `http://localhost:8000` in your browser.
+Visit `http://localhost:3000` in your browser.
 
 ## API Endpoints
 
@@ -176,7 +195,26 @@ v7-deep-agents/
 │       ├── spaced_repetition.py
 │       └── memory_store.py
 ├── documents/
-├── frontend/
+│   ├── topic-list.md         # Chapter/topic structure
+│   └── ref-*.md              # Knowledge base documents
+├── frontend/                  # Next.js frontend
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx      # Main app with state management
+│   │   │   └── globals.css
+│   │   └── components/
+│   │       ├── HomeScreen.tsx     # Chapter selection + curriculum
+│   │       ├── StudyScreen.tsx    # Flashcard display + actions
+│   │       ├── Flashcard.tsx      # Card with flip animation
+│   │       ├── ChatPanel.tsx      # Slide-up chat
+│   │       ├── Sidebar.tsx        # Desktop sidebar with focus areas
+│   │       ├── CurriculumModal.tsx # Learning path creation
+│   │       ├── FocusAreas.tsx     # Struggle topic display
+│   │       └── LoadingDots.tsx
+│   ├── public/images/         # Favicon and icons
+│   ├── next.config.ts         # API proxy config
+│   └── package.json
 ├── studybuddy.db
 ├── .env
 ├── pyproject.toml

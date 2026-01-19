@@ -61,7 +61,14 @@ export default function HomeScreen({
 
             <div className="w-full max-w-md space-y-6">
                 <div className="text-center">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">StudyBuddy</h1>
+                    <div className="flex items-center justify-center gap-3 mb-2">
+                        <img
+                            src="/images/studybuddy-icon.png"
+                            alt=""
+                            className="w-10 h-10"
+                        />
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">StudyBuddy</h1>
+                    </div>
                     <p className="text-gray-600 dark:text-gray-400">AI Engineering Flashcards</p>
                 </div>
 

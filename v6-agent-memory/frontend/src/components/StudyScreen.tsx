@@ -70,7 +70,14 @@ export default function StudyScreen({
                     </svg>
                     <span>Back</span>
                 </button>
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Study Mode</h1>
+                <div className="flex items-center gap-2">
+                    <img
+                        src="/images/studybuddy-icon.png"
+                        alt=""
+                        className="w-6 h-6"
+                    />
+                    <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Study Mode</h1>
+                </div>
                 <button
                     type="button"
                     onClick={toggleTheme}
