@@ -69,7 +69,7 @@ export default function HomeScreen({
                     <div>
                         <label
                             htmlFor="chapter-select"
-                            className="block text-sm font-medium text-gray-700 mb-1"
+                            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                         >
                             Select Chapter
                         </label>
@@ -78,7 +78,7 @@ export default function HomeScreen({
                             value={selectedChapter ?? ''}
                             onChange={(e) => onChapterChange(Number(e.target.value))}
                             disabled={chapters.length === 0}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-500"
                             aria-describedby="chapter-status"
                         >
                             <option value="">
@@ -107,7 +107,7 @@ export default function HomeScreen({
                                     onChange={() => onScopeChange('single')}
                                     className="w-4 h-4 text-blue-600"
                                 />
-                                <span className="text-gray-700">Single chapter</span>
+                                <span className="text-gray-700 dark:text-gray-300">Single chapter</span>
                             </label>
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -118,7 +118,7 @@ export default function HomeScreen({
                                     onChange={() => onScopeChange('cumulative')}
                                     className="w-4 h-4 text-blue-600"
                                 />
-                                <span className="text-gray-700">
+                                <span className="text-gray-700 dark:text-gray-300">
                                     Cumulative (1-{selectedChapter})
                                 </span>
                             </label>
@@ -136,7 +136,7 @@ export default function HomeScreen({
 
                     <p
                         id="chapter-status"
-                        className="text-center text-sm text-gray-500"
+                        className="text-center text-sm text-gray-500 dark:text-gray-300"
                         aria-live="polite"
                     >
                         {statusMessage}
