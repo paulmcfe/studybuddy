@@ -1,14 +1,22 @@
 'use client'
 
-import { useState, KeyboardEvent } from 'react'
+import { useState, useEffect, KeyboardEvent } from 'react'
 
 interface ChatInputProps {
     onSend: (message: string) => void
     disabled: boolean
+    defaultValue?: string
 }
 
-export default function ChatInput({ onSend, disabled }: ChatInputProps) {
+export default function ChatInput({ onSend, disabled, defaultValue }: ChatInputProps) {
     const [value, setValue] = useState('')
+
+    // Update value when defaultValue changes
+    useEffect(() => {
+        if (defaultValue) {
+            setValue(defaultValue)
+        }
+    }, [defaultValue])
 
     const handleSend = () => {
         const trimmed = value.trim()

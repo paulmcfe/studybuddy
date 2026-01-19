@@ -72,6 +72,7 @@ export default function Home() {
     const [chatOpen, setChatOpen] = useState(false)
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
     const [isChatLoading, setIsChatLoading] = useState(false)
+    const [chatPrefill, setChatPrefill] = useState('')
 
     // Status state
     const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null)
@@ -283,11 +284,13 @@ export default function Home() {
 
             if (res.ok) {
                 const data = await res.json()
+                // API returns { curriculum_id, curriculum: { goal, modules, ... } }
+                const curriculumData = data.curriculum || {}
                 const curriculum: Curriculum = {
-                    id: data.id,
-                    goal: data.goal,
-                    modules: data.modules || [],
-                    currentModule: data.modules?.[0] || null,
+                    id: data.curriculum_id,
+                    goal: curriculumData.goal || goal,
+                    modules: curriculumData.modules || [],
+                    currentModule: curriculumData.modules?.[0] || null,
                 }
                 setActiveCurriculum(curriculum)
                 localStorage.setItem('studybuddy-curriculum', JSON.stringify(curriculum))
@@ -383,12 +386,14 @@ export default function Home() {
 
     // Open chat with a pre-filled message about a focus area topic
     const handleChatAboutTopic = (topic: string) => {
+        setChatPrefill(`Can you help me understand "${topic}" better? I've been struggling with this concept.`)
         setChatOpen(true)
-        // Auto-send a question about the topic
-        handleSendMessage(`Can you help me understand "${topic}" better? I've been struggling with this concept.`)
     }
 
     const handleSendMessage = async (message: string) => {
+        // Clear prefill after sending
+        setChatPrefill('')
+
         // Add user message
         const userMsgId = `user-${Date.now()}`
         const assistantMsgId = `assistant-${Date.now()}`
@@ -512,6 +517,7 @@ export default function Home() {
                 onClose={handleCloseChat}
                 onSendMessage={handleSendMessage}
                 isLoading={isChatLoading}
+                prefillMessage={chatPrefill}
             />
 
             {/* Curriculum modal */}

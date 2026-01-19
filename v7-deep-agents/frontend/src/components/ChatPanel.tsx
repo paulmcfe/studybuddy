@@ -1,8 +1,12 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
+
+const MIN_WIDTH = 300
+const MAX_WIDTH = 700
+const DEFAULT_WIDTH = 400
 
 interface Message {
     id: string
@@ -17,6 +21,7 @@ interface ChatPanelProps {
     onClose: () => void
     onSendMessage: (message: string) => void
     isLoading: boolean
+    prefillMessage?: string
 }
 
 export default function ChatPanel({
@@ -25,8 +30,56 @@ export default function ChatPanel({
     onClose,
     onSendMessage,
     isLoading,
+    prefillMessage,
 }: ChatPanelProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null)
+    const [width, setWidth] = useState(DEFAULT_WIDTH)
+    const [isResizing, setIsResizing] = useState(false)
+
+    // Load saved width from localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('chat-panel-width')
+        if (saved) {
+            const parsed = parseInt(saved, 10)
+            if (parsed >= MIN_WIDTH && parsed <= MAX_WIDTH) {
+                setWidth(parsed)
+            }
+        }
+    }, [])
+
+    // Save width to localStorage when it changes
+    useEffect(() => {
+        if (width !== DEFAULT_WIDTH) {
+            localStorage.setItem('chat-panel-width', String(width))
+        }
+    }, [width])
+
+    // Handle resize drag
+    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+        e.preventDefault()
+        setIsResizing(true)
+    }, [])
+
+    useEffect(() => {
+        if (!isResizing) return
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const newWidth = window.innerWidth - e.clientX
+            setWidth(Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, newWidth)))
+        }
+
+        const handleMouseUp = () => {
+            setIsResizing(false)
+        }
+
+        document.addEventListener('mousemove', handleMouseMove)
+        document.addEventListener('mouseup', handleMouseUp)
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove)
+            document.removeEventListener('mouseup', handleMouseUp)
+        }
+    }, [isResizing])
 
     // Scroll to bottom when messages change
     useEffect(() => {
@@ -46,12 +99,20 @@ export default function ChatPanel({
 
             {/* Panel */}
             <div
-                className={`chat-panel z-50 flex flex-col ${open ? 'open' : ''}`}
+                className={`chat-panel z-50 flex flex-col ${open ? 'open' : ''} ${isResizing ? 'select-none' : ''}`}
+                style={{ '--chat-panel-width': `${width}px` } as React.CSSProperties}
                 role="dialog"
                 aria-label="Chat panel"
                 aria-hidden={!open}
                 inert={!open ? true : undefined}
             >
+                {/* Resize handle - desktop only */}
+                <div
+                    className="hidden sm:block absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-blue-500/50 active:bg-blue-500/50 transition-colors"
+                    onMouseDown={handleMouseDown}
+                    aria-hidden="true"
+                />
+
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Chat</h2>
@@ -97,7 +158,7 @@ export default function ChatPanel({
 
                 {/* Input */}
                 <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-                    <ChatInput onSend={onSendMessage} disabled={isLoading} />
+                    <ChatInput onSend={onSendMessage} disabled={isLoading} defaultValue={prefillMessage} />
                     <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-2">
                         Press Escape to close
                     </p>
