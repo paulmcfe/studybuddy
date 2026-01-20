@@ -2,17 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "v7-deep-agents/api/index.py",
+      "src": "v8-evaluation/api/index.py",
       "use": "@vercel/python"
     },
     {
-      "src": "v7-deep-agents/frontend/package.json",
+      "src": "v8-evaluation/frontend/package.json",
       "use": "@vercel/next"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/v7-deep-agents/api/index.py" },
-    { "src": "/(.*)", "dest": "/v7-deep-agents/frontend/$1" }
+    { "src": "/api/(.*)", "dest": "/v8-evaluation/api/index.py" },
+    { "src": "/(.*)", "dest": "/v8-evaluation/frontend/$1" }
   ],
   "git": {
     "deploymentEnabled": {

@@ -1682,7 +1682,7 @@ def generate_test_data(request: GenerateTestsetRequest):
     testset = validate_testset(testset)
 
     # Create dataset name if not provided
-    dataset_name = request.dataset_name or f"tutoring-eval-{datetime.now().strftime('%Y%m%d')}"
+    dataset_name = request.dataset_name or f"tutoring-eval-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 
     # Create LangSmith dataset
     result = create_tutoring_evaluation_dataset(testset, dataset_name)
