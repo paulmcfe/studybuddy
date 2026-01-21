@@ -75,7 +75,7 @@ cd frontend
 npm run dev
 ```
 
-Open http://localhost:5173 in your browser.
+Open http://localhost:3000 in your browser.
 
 ## API Endpoints
 
@@ -117,10 +117,20 @@ v10-full-stack/
 │       ├── indexing.py       # Document processing
 │       ├── curriculum.py     # Curriculum generation
 │       └── flashcard.py      # Flashcard service
-├── frontend/
+├── frontend/                 # Next.js frontend
 │   ├── src/
-│   │   ├── App.jsx
+│   │   ├── app/
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx
+│   │   │   └── globals.css
 │   │   └── components/
+│   │       ├── Sidebar.tsx
+│   │       ├── Dashboard.tsx
+│   │       ├── StudyInterface.tsx
+│   │       ├── DocumentManager.tsx
+│   │       ├── CreateProgram.tsx
+│   │       └── Flashcard.tsx
+│   ├── next.config.ts
 │   └── package.json
 ├── uploads/                  # Uploaded documents
 ├── pyproject.toml
@@ -138,8 +148,8 @@ The API is built with FastAPI and uses:
 
 ### Frontend
 The frontend is built with:
-- React 18 + Vite
-- React Router for navigation
+- Next.js 15 with App Router
+- React 19
 - Vanilla CSS with CSS variables
 
 ## What's Next

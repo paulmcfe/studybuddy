@@ -2,17 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "v9-optimized-retrieval/api/index.py",
+      "src": "v10-full-stack/api/index.py",
       "use": "@vercel/python"
     },
     {
-      "src": "v9-optimized-retrieval/frontend/package.json",
+      "src": "v10-full-stack/frontend/package.json",
       "use": "@vercel/next"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/v9-optimized-retrieval/api/index.py" },
-    { "src": "/(.*)", "dest": "/v9-optimized-retrieval/frontend/$1" }
+    { "src": "/api/(.*)", "dest": "/v10-full-stack/api/index.py" },
+    { "src": "/(.*)", "dest": "/v10-full-stack/frontend/$1" }
   ],
   "git": {
     "deploymentEnabled": {
