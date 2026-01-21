@@ -62,6 +62,7 @@ StudyBuddy v9 transforms basic vector search into a sophisticated retrieval pipe
 ## Prerequisites
 
 - Python 3.12+
+- Node.js 18+
 - OpenAI API key
 - Cohere API key (for reranking)
 - LangSmith API key (for evaluation)
@@ -91,15 +92,30 @@ LANGSMITH_API_KEY=lsv2_your-key-here
 LANGSMITH_PROJECT=studybuddy-v9
 ```
 
-### 4. Run the server
+### 4. Set up the frontend
 
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+### 5. Run the app (two terminals)
+
+**Terminal 1 - Backend:**
 ```bash
 uv run uvicorn api.index:app --reload --port 8000
 ```
 
-### 5. Open the app
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
+npm run dev
+```
 
-Visit `http://localhost:8000` in your browser.
+### 6. Open the app
+
+Visit `http://localhost:3000` in your browser.
 
 ## Retrieval Strategies
 
@@ -172,7 +188,26 @@ v9-optimized-retrieval/
 │       ├── retrieval_comparison.py  # NEW: Comparison tool
 │       └── ...               # v8 evaluation module
 ├── documents/
-├── frontend/
+│   ├── topic-list.md         # Chapter/topic structure
+│   └── ref-*.md              # Knowledge base documents
+├── frontend/                  # Next.js frontend
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx      # Main app with state management
+│   │   │   └── globals.css
+│   │   └── components/
+│   │       ├── HomeScreen.tsx     # Chapter selection + curriculum
+│   │       ├── StudyScreen.tsx    # Flashcard display + actions
+│   │       ├── Flashcard.tsx      # Card with flip animation
+│   │       ├── ChatPanel.tsx      # Slide-up chat
+│   │       ├── Sidebar.tsx        # Desktop sidebar with focus areas
+│   │       ├── CurriculumModal.tsx # Learning path creation
+│   │       ├── FocusAreas.tsx     # Struggle topic display
+│   │       └── LoadingDots.tsx
+│   ├── public/images/         # Favicon and icons
+│   ├── next.config.ts         # API proxy config
+│   └── package.json
 ├── .env
 ├── pyproject.toml
 └── README.md
