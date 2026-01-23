@@ -44,10 +44,18 @@ export default function DocumentManager({ program, onUpdate }: DocumentManagerPr
         }
     }
 
+    const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+
     const handleUpload = async (files: File[]) => {
         setUploading(true)
 
         for (const file of files) {
+            // Check file size before uploading
+            if (file.size > MAX_FILE_SIZE) {
+                alert(`${file.name} is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum file size is 50MB.`)
+                continue
+            }
+
             const formData = new FormData()
             formData.append('file', file)
 
