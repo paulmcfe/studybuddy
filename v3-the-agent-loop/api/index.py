@@ -201,9 +201,6 @@ def get_status():
 
 @app.post("/api/chat")
 def chat(request: ChatRequest):
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
 
     try:
         # Ensure documents are indexed

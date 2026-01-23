@@ -12,6 +12,11 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(env_path)
 
+# Validate API key at startup
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY environment variable is not set")
+
 
 # ============== RAG Implementation ==============
 
@@ -126,21 +131,13 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]
     return chunks
 
 
-# Initialize vector database (client initialized lazily)
+# Initialize vector database and OpenAI client
 vector_db = SimpleVectorDB()
-_client = None
-
-
-def get_client():
-    """Lazy initialization of OpenAI client."""
-    global _client
-    if _client is None:
-        _client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    return _client
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 def embed_text(text: str) -> List[float]:
-    response = get_client().embeddings.create(
+    response = client.embeddings.create(
         model='text-embedding-3-small',
         input=text
     )
@@ -177,29 +174,27 @@ def retrieve_context(query: str, k: int = 3) -> str:
     return '\n\n'.join(context_parts)
 
 
+SYSTEM_INSTRUCTIONS = """You are StudyBuddy, a helpful tutoring assistant.
+
+Given context from study materials, answer the student's question. 
+Be clear and thorough, and cite which document you're referencing when relevant."""
+
+
 def answer_question(question: str) -> str:
     context = retrieve_context(question)
 
-    prompt = f'''You are StudyBuddy, a helpful tutoring assistant.
-
-Given the following context from study materials, answer the student's
-question. Be clear and thorough, and cite which document you're
-referencing when relevant.
-
-Context:
+    user_input = f'''Context:
 {context}
 
 Question: {question}'''
 
-    response = get_client().chat.completions.create(
+    response = client.responses.create(
         model='gpt-4o-mini',
-        messages=[{
-            'role': 'user',
-            'content': prompt
-        }]
+        instructions=SYSTEM_INSTRUCTIONS,
+        input=user_input
     )
 
-    return response.choices[0].message.content
+    return response.output_text
 
 
 # ============== FastAPI App ==============
@@ -235,10 +230,6 @@ def get_status():
 
 @app.post("/api/chat")
 def chat(request: ChatRequest):
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
-
     try:
         reply = answer_question(request.message)
         return {"reply": reply}

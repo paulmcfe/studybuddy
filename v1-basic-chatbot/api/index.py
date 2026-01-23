@@ -10,6 +10,11 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(env_path)
 
+# Validate API key at startup
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY environment variable is not set")
+
 app = FastAPI()
 
 # CORS for local development (frontend on port 3000, backend on port 8000)
@@ -20,16 +25,13 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 class ChatRequest(BaseModel):
     message: str
 
 @app.post("/api/chat")
 def chat(request: ChatRequest):
-    if not os.getenv("OPENAI_API_KEY"):
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
-
     try:
         user_message = request.message
         response = client.responses.create(
