@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from pathlib import Path
 import threading
-import os
 from dotenv import load_dotenv
 
 # Load .env from parent directory (v3-the-agent-loop/)
@@ -22,13 +21,12 @@ from langchain.agents import create_agent
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
 
-# Initialize embeddings
+# Initialize embeddings model (converts text to vectors for similarity search)
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
-# Create in-memory Qdrant client
+# Create in-memory Qdrant client (vector database stored in RAM)
 qdrant_client = QdrantClient(":memory:")
 
-# Collection name
 COLLECTION_NAME = "study_materials"
 
 # Create collection with proper dimensions (1536 for text-embedding-3-small)
@@ -37,7 +35,7 @@ qdrant_client.create_collection(
     vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
 )
 
-# Create LangChain vector store wrapper
+# Create LangChain vector store wrapper (bridges LangChain and Qdrant)
 vector_store = QdrantVectorStore(
     client=qdrant_client,
     collection_name=COLLECTION_NAME,
@@ -46,23 +44,24 @@ vector_store = QdrantVectorStore(
 
 
 def index_document(file_path: str, doc_name: str):
-    """Load, chunk, and index a document."""
+    """Load, chunk, and index a document into the vector store."""
+    # Load the text file
     loader = TextLoader(file_path)
     documents = loader.load()
 
-    # Split into chunks
+    # Split into chunks (smaller pieces improve retrieval accuracy)
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=50,
+        chunk_size=500,      # Each chunk ~500 characters
+        chunk_overlap=50,    # Overlap prevents splitting mid-concept
         length_function=len
     )
     chunks = text_splitter.split_documents(documents)
 
-    # Add metadata
+    # Add metadata to track which document each chunk came from
     for chunk in chunks:
         chunk.metadata['source'] = doc_name
 
-    # Index in Qdrant
+    # Convert chunks to embeddings and store in Qdrant
     vector_store.add_documents(chunks)
 
     return len(chunks)
@@ -78,6 +77,7 @@ def search_materials(query: str) -> str:
     Args:
         query: The search term or question to look up
     """
+    # Find the 3 most similar chunks to the query
     results = vector_store.similarity_search(query, k=3)
 
     if not results:
@@ -92,7 +92,7 @@ def search_materials(query: str) -> str:
     return "\n\n".join(formatted)
 
 
-# System prompt
+# System prompt that defines the agent's behavior
 SYSTEM_PROMPT = """You are StudyBuddy, an AI tutoring assistant helping students study Sherlock Holmes stories.
 
 IMPORTANT: The student has uploaded study materials (Sherlock Holmes stories) that you MUST search
@@ -108,20 +108,18 @@ Only answer from general knowledge for questions completely unrelated to the stu
 
 When you search, cite which story the information comes from."""
 
-# Create tools list
+# Create tools list (functions the agent can call)
 tools = [search_materials]
 
-# Create the agent using LangChain 1.0 API
+# Create the agent with access to GPT-4o-mini and our search tool
 agent = create_agent(
     model="gpt-4o-mini",
     tools=tools,
     system_prompt=SYSTEM_PROMPT
 )
 
-
-# Track indexing status
+# Track indexing status (shared state between threads)
 indexing_status = {"done": False, "count": 0, "chunks": 0, "current_file": ""}
-
 
 def index_all_documents():
     """Index all documents from the documents directory."""
@@ -134,6 +132,7 @@ def index_all_documents():
         indexing_status["done"] = True
         return 0
 
+    # Find all .txt and .md files
     story_files = sorted(
         list(documents_dir.glob("*.txt")) +
         list(documents_dir.glob("*.md"))
@@ -146,6 +145,7 @@ def index_all_documents():
     print("Indexing stories...")
     total_chunks = 0
     for filepath in story_files:
+        # Create a friendly display name from filename
         doc_name = filepath.stem.replace("-", " ").replace("_", " ").title()
         indexing_status["current_file"] = doc_name
         num_chunks = index_document(str(filepath), doc_name)
@@ -166,8 +166,8 @@ def index_all_documents():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start background indexing on startup."""
-    # Start indexing in a background thread
+    """Start background indexing on startup (runs once when server starts)."""
+    # Start indexing in a background thread so API is responsive immediately
     thread = threading.Thread(target=index_all_documents, daemon=True)
     thread.start()
     print("Server started. Document indexing running in background...")
@@ -183,14 +183,12 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-
 class ChatRequest(BaseModel):
     message: str
 
-
 @app.get("/api/status")
 def get_status():
-    """Check indexing status."""
+    """Check indexing status (useful for showing loading state in frontend)."""
     return {
         "indexing_complete": indexing_status["done"],
         "documents_indexed": indexing_status["count"],
@@ -203,15 +201,15 @@ def get_status():
 def chat(request: ChatRequest):
 
     try:
-        # Ensure documents are indexed
+        # Ensure documents are indexed before processing queries
         index_all_documents()
 
-        # Run the agent using LangChain 1.0 API
+        # Run the agent (it will decide whether to use the search tool)
         response = agent.invoke({
             "messages": [{"role": "user", "content": request.message}]
         })
 
-        # Extract reasoning from message history
+        # Extract reasoning from message history (shows agent's thought process)
         messages = response["messages"]
         reasoning_parts = []
         final_answer = ""
@@ -223,26 +221,27 @@ def chat(request: ChatRequest):
             if msg_type == 'human':
                 continue
 
-            # Check for tool calls (agent deciding to use a tool)
+            # Tool calls show when the agent decides to search
             if msg_type == 'ai' and hasattr(msg, 'tool_calls') and msg.tool_calls:
                 for tool_call in msg.tool_calls:
                     reasoning_parts.append(f"Action: {tool_call['name']}")
                     reasoning_parts.append(f"Input: {tool_call['args']}")
 
-            # Check for tool responses (ToolMessage)
+            # Tool responses show what the search found
             elif msg_type == 'tool':
                 tool_name = getattr(msg, 'name', 'search_materials')
                 content = msg.content if msg.content else ''
-                # Truncate long content
+                # Truncate long content for readability
                 display_content = content[:800] + '...' if len(content) > 800 else content
                 reasoning_parts.append(f"Observation from {tool_name}:\n{display_content}")
 
-            # The final AI message is the answer (has content but no tool calls)
+            # The final AI message contains the answer to the user
             elif msg_type == 'ai' and msg.content:
                 tool_calls = getattr(msg, 'tool_calls', [])
                 if not tool_calls:
                     final_answer = msg.content
 
+        # Combine reasoning steps (can be displayed in frontend to show agent's work)
         reasoning = "\n\n".join(reasoning_parts) if reasoning_parts else None
 
         return {"reply": final_answer, "reasoning": reasoning}

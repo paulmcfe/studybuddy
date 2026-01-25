@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 # LangChain imports
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+# from langchain_ollama import ChatOllama, OllamaEmbeddings  # For local Ollama models
 from langchain_qdrant import QdrantVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import TextLoader
@@ -38,13 +39,15 @@ os.environ["LANGSMITH_PROJECT"] = "studybuddy-v4"
 # ============== Vector Store Setup ==============
 
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+# embeddings = OllamaEmbeddings(model="nomic-embed-text")  # For local Ollama models
 qdrant_client = QdrantClient(":memory:")
 
 COLLECTION_NAME = "ai_engineering_guides"
 
 qdrant_client.create_collection(
     collection_name=COLLECTION_NAME,
-    vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
+    vectors_config=VectorParams(size=1536, distance=Distance.COSINE)  # OpenAI
+    # vectors_config=VectorParams(size=768, distance=Distance.COSINE)  # Ollama nomic-embed-text
 )
 
 vector_store = QdrantVectorStore(
@@ -224,6 +227,7 @@ class StudyBuddyState(TypedDict):
 # ============== LLM Setup ==============
 
 llm = ChatOpenAI(model="gpt-4o-mini")
+# llm = ChatOllama(model="llama3.2:3b")  # For local Ollama models
 
 
 # ============== Node Implementations ==============
@@ -570,6 +574,7 @@ def get_chapters():
 @app.post("/api/flashcard", response_model=FlashcardResponse)
 def generate_flashcard(request: FlashcardRequest):
     """Generate a single flashcard scoped to selected chapters."""
+    # Comment out these 3 lines if using Ollama (open-source models)
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
@@ -699,6 +704,7 @@ Respond with JSON only:
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     """Handle chat requests through the LangGraph agent."""
+    # Comment out these 3 lines if using Ollama (open-source models)
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")

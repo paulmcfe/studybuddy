@@ -281,7 +281,7 @@ In Chapter 2, we'll add RAG (Retrieval-Augmented Generation) so StudyBuddy can a
 
 **Testing the backend directly:**
 ```bash
-curl -X POST http://localhost:8000/api/chat \
+curl -X POST http://127.0.0.1:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "Hello"}'
 ```

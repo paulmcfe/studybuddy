@@ -134,7 +134,7 @@ v9 provides multiple retrieval strategies that can be selected automatically or 
 ### NEW in v9: Retrieval Comparison
 
 ```bash
-curl -X POST http://localhost:8000/api/evaluation/compare-retrievers \
+curl -X POST http://127.0.0.1:8000/api/evaluation/compare-retrievers \
   -H "Content-Type: application/json" \
   -d '{"queries": ["What is RAG?", "Compare embeddings and BM25"], "k": 5}'
 ```
@@ -145,17 +145,17 @@ Returns side-by-side comparison of simple vs adaptive retrieval with latency met
 
 ```bash
 # Generate synthetic test data
-curl -X POST http://localhost:8000/api/evaluation/generate-testset \
+curl -X POST http://127.0.0.1:8000/api/evaluation/generate-testset \
   -H "Content-Type: application/json" \
   -d '{"test_size": 50}'
 
 # Run evaluation
-curl -X POST http://localhost:8000/api/evaluation/run \
+curl -X POST http://127.0.0.1:8000/api/evaluation/run \
   -H "Content-Type: application/json" \
   -d '{"dataset_name": "tutoring-eval", "eval_type": "all"}'
 
 # Get dashboard metrics
-curl http://localhost:8000/api/evaluation/dashboard
+curl http://127.0.0.1:8000/api/evaluation/dashboard
 ```
 
 ### Core Endpoints

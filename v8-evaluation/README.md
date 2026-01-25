@@ -113,7 +113,7 @@ Visit `http://localhost:3000` in your browser.
 ### Generate Synthetic Test Data
 
 ```bash
-curl -X POST http://localhost:8000/api/evaluation/generate-testset \
+curl -X POST http://127.0.0.1:8000/api/evaluation/generate-testset \
   -H "Content-Type: application/json" \
   -d '{"test_size": 50}'
 ```
@@ -124,12 +124,12 @@ Creates a LangSmith dataset with synthetic questions generated from reference do
 
 ```bash
 # Evaluate all components
-curl -X POST http://localhost:8000/api/evaluation/run \
+curl -X POST http://127.0.0.1:8000/api/evaluation/run \
   -H "Content-Type: application/json" \
   -d '{"dataset_name": "tutoring-eval-YYYYMMDD-HHMMSS", "eval_type": "all"}'
 
 # Evaluate specific component
-curl -X POST http://localhost:8000/api/evaluation/run \
+curl -X POST http://127.0.0.1:8000/api/evaluation/run \
   -H "Content-Type: application/json" \
   -d '{"dataset_name": "tutoring-eval-YYYYMMDD-HHMMSS", "eval_type": "tutoring"}'
 ```
@@ -139,7 +139,7 @@ Replace `tutoring-eval-YYYYMMDD-HHMMSS` with the actual dataset name from the `g
 ### Get Dashboard Metrics
 
 ```bash
-curl http://localhost:8000/api/evaluation/dashboard
+curl http://127.0.0.1:8000/api/evaluation/dashboard
 ```
 
 Returns current scores, trends, weak areas, and recommendations.
