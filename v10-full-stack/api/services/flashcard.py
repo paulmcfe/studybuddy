@@ -14,24 +14,34 @@ from langchain_core.prompts import ChatPromptTemplate
 from api.database.models import Flashcard, LearningProgram
 
 
-FLASHCARD_PROMPT = ChatPromptTemplate.from_template("""You are an expert educator creating flashcards.
+FLASHCARD_PROMPT = ChatPromptTemplate.from_template("""You are an expert educator creating flashcards following the minimum information principle.
 
 Topic: {topic}
 
 Context from the learning materials:
 {context}
 
-Create a high-quality flashcard that:
-1. Tests understanding, not just memorization
-2. Has a clear, specific question
-3. Has a comprehensive but concise answer
-4. Focuses on the most important concept in the context
+CRITICAL RULES for creating effective flashcards:
+1. ONE ATOMIC FACT per card - never ask multiple questions or combine concepts
+2. Be SPECIFIC - avoid vague questions like "What is X?" when you can ask about a specific behavior or property
+3. Keep questions SHORT and direct (ideally under 15 words)
+4. Keep answers BRIEF - one sentence or a few bullet points maximum
+5. Test RECALL, not recognition - the learner should produce the answer from memory
+
+BAD flashcard examples (DO NOT create cards like these):
+- "What is a dictionary and how do you use it?" (combines multiple concepts)
+- "Explain the differences between lists and tuples" (too broad, multiple facts)
+- "What are the key features of Python?" (vague, multiple answers)
+
+GOOD flashcard examples:
+- Q: "What Python syntax checks if key 'name' exists in dict d?" A: "'name' in d"
+- Q: "What does list.append(x) return?" A: "None (it modifies the list in place)"
+- Q: "What error is raised when accessing a missing dictionary key with d[key]?" A: "KeyError"
 
 Return ONLY a JSON object with "question" and "answer" fields.
 No markdown formatting, just the JSON object.
 
-Example:
-{{"question": "What is the main purpose of X?", "answer": "X is used to..."}}
+{{"question": "Your specific, atomic question here", "answer": "Brief, direct answer"}}
 """)
 
 

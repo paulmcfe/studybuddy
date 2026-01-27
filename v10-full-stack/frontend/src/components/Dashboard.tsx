@@ -49,6 +49,17 @@ export default function Dashboard({
         }
     }, [program?.id])
 
+    // Poll for updated stats while background flashcard generation might be in progress
+    useEffect(() => {
+        if ((stats?.flashcards?.total ?? 0) >= 6) return
+
+        const pollInterval = setInterval(() => {
+            loadStats()
+        }, 3000) // Check every 3 seconds
+
+        return () => clearInterval(pollInterval)
+    }, [program?.id, stats?.flashcards?.total])
+
     const loadStats = async () => {
         try {
             const response = await fetch(`/api/programs/${program.id}/stats`)
@@ -152,7 +163,7 @@ export default function Dashboard({
                 </div>
             </div>
 
-            {stats?.documents?.pending && stats.documents.pending > 0 && (
+            {stats?.documents?.pending != null && stats.documents.pending > 0 && (
                 <div
                     className="card"
                     style={{

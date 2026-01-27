@@ -18,10 +18,11 @@ interface CreateProgramProps {
 export default function CreateProgram({ onCreated, onCancel }: CreateProgramProps) {
     const [name, setName] = useState('')
     const [description, setDescription] = useState('')
-    const [topicInput, setTopicInput] = useState('')
     const [generating, setGenerating] = useState(false)
     const [createMode, setCreateMode] = useState<'manual' | 'generate'>('manual')
     const [loading, setLoading] = useState(false)
+
+    const canSelectCurriculum = name.trim() && description.trim()
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -45,7 +46,7 @@ export default function CreateProgram({ onCreated, onCancel }: CreateProgramProp
 
             const program = await response.json()
 
-            if (createMode === 'generate' && topicInput.trim()) {
+            if (createMode === 'generate') {
                 setGenerating(true)
 
                 const curriculumResponse = await fetch(
@@ -54,7 +55,7 @@ export default function CreateProgram({ onCreated, onCancel }: CreateProgramProp
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            topic: topicInput.trim(),
+                            topic: description.trim(),
                             depth: 'intermediate',
                             chapter_count: 8,
                         }),
@@ -95,18 +96,26 @@ export default function CreateProgram({ onCreated, onCancel }: CreateProgramProp
                     </div>
 
                     <div>
-                        <label htmlFor="description">Description (optional)</label>
+                        <label htmlFor="description">What do you want to learn? *</label>
                         <textarea
                             id="description"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            placeholder="What do you want to learn?"
+                            placeholder="e.g., Conversational Spanish for travel, Machine Learning fundamentals"
                             rows={3}
+                            required
                         />
                     </div>
                 </div>
 
-                <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <div
+                    className="card"
+                    style={{
+                        marginBottom: '1.5rem',
+                        opacity: canSelectCurriculum ? 1 : 0.5,
+                        pointerEvents: canSelectCurriculum ? 'auto' : 'none',
+                    }}
+                >
                     <h3 style={{ marginBottom: '1rem' }}>Curriculum</h3>
 
                     <div className="tabs" style={{ marginBottom: '1rem' }}>
@@ -114,6 +123,7 @@ export default function CreateProgram({ onCreated, onCancel }: CreateProgramProp
                             type="button"
                             className={`tab ${createMode === 'manual' ? 'active' : ''}`}
                             onClick={() => setCreateMode('manual')}
+                            disabled={!canSelectCurriculum}
                         >
                             Start Empty
                         </button>
@@ -121,6 +131,7 @@ export default function CreateProgram({ onCreated, onCancel }: CreateProgramProp
                             type="button"
                             className={`tab ${createMode === 'generate' ? 'active' : ''}`}
                             onClick={() => setCreateMode('generate')}
+                            disabled={!canSelectCurriculum}
                         >
                             Generate with AI
                         </button>
@@ -128,31 +139,15 @@ export default function CreateProgram({ onCreated, onCancel }: CreateProgramProp
 
                     {createMode === 'manual' && (
                         <p style={{ color: 'var(--color-text-secondary)' }}>
-                            You can add a topic list later by uploading documents or generating
-                            one with AI.
+                            Upload your own documents and the AI tutor will use them directly.
+                            You can generate a topic list later if needed.
                         </p>
                     )}
 
                     {createMode === 'generate' && (
-                        <div>
-                            <label htmlFor="topic">What do you want to learn?</label>
-                            <input
-                                id="topic"
-                                type="text"
-                                value={topicInput}
-                                onChange={(e) => setTopicInput(e.target.value)}
-                                placeholder="e.g., Machine Learning, Spanish for beginners"
-                            />
-                            <p
-                                style={{
-                                    fontSize: '0.75rem',
-                                    color: 'var(--color-text-muted)',
-                                    marginTop: '0.5rem',
-                                }}
-                            >
-                                AI will generate a comprehensive curriculum for this topic
-                            </p>
-                        </div>
+                        <p style={{ color: 'var(--color-text-secondary)' }}>
+                            AI will generate a structured curriculum based on your description above.
+                        </p>
                     )}
                 </div>
 
@@ -168,7 +163,7 @@ export default function CreateProgram({ onCreated, onCancel }: CreateProgramProp
                     <button
                         type="submit"
                         className="btn-primary"
-                        disabled={!name.trim() || loading}
+                        disabled={!canSelectCurriculum || loading}
                     >
                         {loading
                             ? generating

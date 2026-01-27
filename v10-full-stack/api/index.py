@@ -221,6 +221,8 @@ def create_program(
         "id": program.id,
         "name": program.name,
         "description": program.description,
+        "document_count": 0,
+        "flashcard_count": 0,
         "qdrant_collection": program.qdrant_collection,
         "created_at": program.created_at.isoformat(),
     }
@@ -293,10 +295,55 @@ async def delete_program(
 # ============== Curriculum Generation ==============
 
 
+async def generate_initial_flashcards(program_id: str, num_cards: int = 6):
+    """Background task to generate initial flashcards for a new program."""
+    from api.database.connection import SessionLocal
+
+    db = SessionLocal()
+    try:
+        program = db.query(LearningProgram).filter(
+            LearningProgram.id == program_id
+        ).first()
+
+        if not program:
+            return
+
+        retriever = get_program_retriever(program)
+
+        for _ in range(num_cards):
+            # Get next topic from curriculum
+            topic = await get_next_curriculum_topic(program, db)
+
+            if not topic:
+                # No more topics, use program name
+                topic = f"{program.name} concepts"
+
+            # Get context from documents or use general knowledge
+            docs = retriever.search(topic, k=3)
+            if docs:
+                context = "\n\n".join(doc.page_content for doc in docs)
+            else:
+                context = f"General knowledge about {topic}. No specific documents available."
+
+            # Generate flashcard
+            await generate_flashcard(
+                topic=topic,
+                context=context,
+                program_id=program_id,
+                db=db,
+            )
+
+    except Exception as e:
+        print(f"Error generating initial flashcards: {e}")
+    finally:
+        db.close()
+
+
 @app.post("/api/programs/{program_id}/generate-curriculum")
 async def generate_program_curriculum(
     program_id: str,
     request: CurriculumGenerateRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db_dependency),
 ):
     """Generate a curriculum for a program using AI."""
@@ -315,6 +362,9 @@ async def generate_program_curriculum(
     program.topic_list = topic_list
     program.updated_at = datetime.utcnow()
     db.commit()
+
+    # Generate initial flashcards in the background
+    background_tasks.add_task(generate_initial_flashcards, program_id, 6)
 
     return {
         "status": "generated",
@@ -676,7 +726,7 @@ async def get_next_curriculum_topic(program: LearningProgram, db: Session) -> Op
     for topic in all_topics:
         count = db.query(Flashcard).filter(
             Flashcard.program_id == program.id,
-            Flashcard.topic.ilike(f"%{topic[:50]}%"),  # Partial match
+            Flashcard.topic == topic,
         ).count()
         topic_card_counts[topic] = count
 

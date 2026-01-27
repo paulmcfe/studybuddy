@@ -77,6 +77,70 @@ npm run dev
 
 Open http://localhost:3000 in your browser.
 
+## Usage
+
+### Creating a Learning Program
+
+1. Click **"+ New Program"** in the sidebar
+2. Enter a name for your subject (e.g., "Machine Learning", "Spanish")
+3. Enter a description of what you want to learn (e.g., "Machine learning fundamentals including supervised and unsupervised learning")
+4. Choose a curriculum option:
+   - **Start Empty** - Create a blank program without a predefined topic list. You can upload your own documents and the AI tutor will use them directly.
+   - **Generate with AI** - The AI will generate a structured curriculum based on your description, with chapters and topics. This creates a topic list that organizes your learning and helps generate focused flashcards.
+5. Click **Create** to start your new program
+
+When you create a program, the app automatically generates an initial set of flashcards in the background based on your curriculum or description.
+
+**When to use each option:**
+
+- Use **Generate with AI** when learning a new subject from scratch and you want a structured learning path with organized topics
+- Use **Start Empty** when you have your own study materials (textbooks, lecture notes, articles) and want the AI to work directly from those documents
+
+### Building Your Knowledge Base
+
+Upload documents to give the AI tutor context about your subject:
+
+1. Select a program from the sidebar
+2. Click **"Upload Documents"** or go to the Documents view
+3. Drag and drop files or click to browse
+4. Supported formats: PDF, Markdown (.md), and plain text (.txt)
+5. Maximum file size: 50MB per file
+6. Documents are automatically indexed for AI retrieval
+
+### Studying with the AI Tutor
+
+The Chat interface lets you have conversations with an AI tutor that references your uploaded documents:
+
+1. Select a program and click **"Start Studying"**
+2. Type questions in the chat input
+3. The tutor searches your documents and provides relevant answers
+4. Use this to ask clarifying questions, get explanations, or test your understanding
+
+The chat supports rich formatting including markdown (headers, lists, code blocks) and LaTeX math equations.
+
+### Using Flashcards
+
+Flashcards use spaced repetition (SM-2 algorithm) to optimize your review schedule:
+
+1. Go to the **Flashcards** tab in the Study view
+2. Review your due cards or click **"Generate New Card"** to create more
+3. Click on a card to reveal the answer
+4. Rate your recall:
+   - **No** - You didn't remember (card shown again soon)
+   - **Took a sec** - You remembered with effort
+   - **Yes** - Easy recall (card scheduled for later)
+
+Flashcards follow the "minimum information principle" - each card tests one atomic fact with a specific, direct question for effective learning.
+
+### Tracking Progress
+
+The Dashboard shows your learning statistics:
+
+- **Documents Indexed** - Number of processed documents
+- **Flashcards** - Total cards in your collection
+- **Due for Review** - Cards scheduled for today
+- **Mastered** - Cards you've learned well
+
 ## API Endpoints
 
 ### Programs

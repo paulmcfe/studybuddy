@@ -1,11 +1,17 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 import Flashcard from './Flashcard'
 
 interface Program {
     id: string
     name: string
+    document_count?: number
+    flashcard_count?: number
 }
 
 interface Message {
@@ -22,9 +28,19 @@ interface Card {
 
 interface StudyInterfaceProps {
     program: Program
+    onUpdate?: () => void
 }
 
-export default function StudyInterface({ program }: StudyInterfaceProps) {
+// Convert LaTeX delimiters from \( \) and \[ \] to $ and $$
+function convertLatexDelimiters(text: string): string {
+    return text
+        // Convert display math \[ ... \] to $$ ... $$
+        .replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$')
+        // Convert inline math \( ... \) to $ ... $
+        .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$')
+}
+
+export default function StudyInterface({ program, onUpdate }: StudyInterfaceProps) {
     const [view, setView] = useState<'chat' | 'flashcards'>('chat')
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
@@ -48,6 +64,18 @@ export default function StudyInterface({ program }: StudyInterfaceProps) {
             }
         }
     }, [program.id])
+
+    // Poll for new cards while background generation might be in progress
+    useEffect(() => {
+        // Only poll if we have few cards (background generation likely in progress)
+        if (totalCards >= 6) return
+
+        const pollInterval = setInterval(() => {
+            loadDueCards()
+        }, 3000) // Check every 3 seconds
+
+        return () => clearInterval(pollInterval)
+    }, [program.id, totalCards])
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -100,6 +128,7 @@ export default function StudyInterface({ program }: StudyInterfaceProps) {
             const data = await response.json()
             setDueCards(data.cards)
             setTotalCards(data.total_cards || 0)
+            onUpdate?.()
         } catch (error) {
             console.error('Failed to load due cards:', error)
         }
@@ -119,6 +148,7 @@ export default function StudyInterface({ program }: StudyInterfaceProps) {
                 const card = await response.json()
                 setLastGeneratedCard(card)
                 await loadDueCards()
+                onUpdate?.()
             } else {
                 const error = await response.json()
                 console.error('Failed to generate flashcard:', error)
@@ -201,15 +231,26 @@ export default function StudyInterface({ program }: StudyInterfaceProps) {
                     <div className="chat-messages">
                         {messages.length === 0 && (
                             <div className="empty-state">
-                                <p>Ask questions about your learning materials!</p>
+                                <p>Ask questions about {program.name}!</p>
                                 <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
-                                    The tutor will use your uploaded documents to answer.
+                                    {program.document_count && program.document_count > 0
+                                        ? 'The tutor will use your uploaded documents to answer.'
+                                        : 'The tutor will use its general knowledge to help you learn.'}
                                 </p>
                             </div>
                         )}
                         {messages.map((msg, i) => (
                             <div key={i} className={`chat-message ${msg.role}`}>
-                                {msg.content}
+                                {msg.role === 'assistant' ? (
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkMath]}
+                                        rehypePlugins={[rehypeKatex]}
+                                    >
+                                        {convertLatexDelimiters(msg.content)}
+                                    </ReactMarkdown>
+                                ) : (
+                                    msg.content
+                                )}
                             </div>
                         ))}
                         {isLoading && (

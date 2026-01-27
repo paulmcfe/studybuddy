@@ -92,7 +92,7 @@ export default function Home() {
 
         switch (view) {
             case 'study':
-                return <StudyInterface program={selectedProgram} />
+                return <StudyInterface program={selectedProgram} onUpdate={loadPrograms} />
             case 'documents':
                 return (
                     <DocumentManager
