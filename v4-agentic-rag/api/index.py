@@ -13,6 +13,11 @@ from dotenv import load_dotenv
 
 # LangChain imports
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+'''
+Throughout this file, you can switch between OpenAI and open-source code by toggling comments. 
+For example, to switch to an open-source model and embeddings, add `# ` at the start of the 
+line above and remove it from the line below.
+'''
 # from langchain_ollama import ChatOllama, OllamaEmbeddings  # For local Ollama models
 from langchain_qdrant import QdrantVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -38,6 +43,7 @@ os.environ["LANGSMITH_PROJECT"] = "studybuddy-v4"
 
 # ============== Vector Store Setup ==============
 
+# Initialize embeddings and vector store
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 # embeddings = OllamaEmbeddings(model="nomic-embed-text")  # For local Ollama models
 qdrant_client = QdrantClient(":memory:")
@@ -59,7 +65,6 @@ vector_store = QdrantVectorStore(
 # ============== Document Indexing ==============
 
 indexing_status = {"done": False, "count": 0, "chunks": 0, "current_file": ""}
-
 
 def index_reference_guides():
     """Index all reference guide markdown files."""
@@ -208,9 +213,6 @@ class StudyBuddyState(TypedDict):
     needs_retrieval: bool
     search_queries: list[str]
 
-    # Context (for flashcard-based chat)
-    card_context: dict | None  # {question, answer, topic} of current flashcard
-
     # Retrieval
     retrieved_docs: list
     retrieval_sufficient: bool
@@ -219,9 +221,6 @@ class StudyBuddyState(TypedDict):
     # Response
     response: str
     confidence: float
-
-    # Flashcard
-    flashcard_suggestion: dict | None
 
 
 # ============== LLM Setup ==============
@@ -358,12 +357,10 @@ Respond with JSON only, no markdown: {{"confidence": X}}"""
 
 
 def generate_node(state: StudyBuddyState) -> dict:
-    """Generate educational response with optional flashcard suggestion."""
+    """Generate educational response using retrieved context."""
     query = state["query"]
     docs = state.get("retrieved_docs", [])
     confidence = state.get("confidence", 0.5)
-    query_type = state.get("query_type", "conceptual")
-    card_context = state.get("card_context")
 
     # Format context with sources
     context_parts = []
@@ -372,21 +369,8 @@ def generate_node(state: StudyBuddyState) -> dict:
         context_parts.append(f"[{source}]:\n{doc.page_content}")
     context = "\n\n---\n\n".join(context_parts)
 
-    # Build card context section if present
-    card_section = ""
-    if card_context:
-        card_section = f"""
-The student is currently studying a flashcard:
-- Topic: {card_context.get('topic', 'Unknown')}
-- Question: {card_context.get('question', '')}
-- Answer: {card_context.get('answer', '')}
-
-They're asking for clarification about this card. Focus your explanation on helping them understand this specific concept better.
-
-"""
-
     generate_prompt = f"""You are StudyBuddy, an AI engineering tutor helping students learn.
-{card_section}
+
 Student question: {query}
 
 Reference material:
@@ -400,12 +384,10 @@ Instructions:
 - Match your explanation depth to the question complexity"""
 
     response = llm.invoke(generate_prompt)
-    content = response.content
 
     return {
-        "response": content,
-        "confidence": confidence,
-        "flashcard_suggestion": None
+        "response": response.content,
+        "confidence": confidence
     }
 
 
@@ -420,7 +402,6 @@ def direct_answer_node(state: StudyBuddyState) -> dict:
     return {
         "response": response.content,
         "confidence": 0.9,
-        "flashcard_suggestion": None,
         "retrieved_docs": []
     }
 
@@ -525,15 +506,11 @@ class ChatRequest(BaseModel):
     message: str
     chapter_id: Optional[int] = None
     scope: Optional[str] = None
-    card_context: Optional[dict] = None
-
 
 class ChatResponse(BaseModel):
     reply: str
     confidence: float
-    flashcard: dict | None = None
     analysis: dict | None = None
-
 
 class FlashcardRequest(BaseModel):
     chapter_id: int
@@ -541,13 +518,11 @@ class FlashcardRequest(BaseModel):
     current_topic: Optional[str] = None
     previous_question: Optional[str] = None  # For "Study More" - avoid repeating
 
-
 class FlashcardResponse(BaseModel):
     question: str
     answer: str
     topic: str
     source: str  # "rag" or "llm"
-
 
 @app.get("/api/status")
 def get_status():
@@ -719,8 +694,7 @@ def chat(request: ChatRequest):
         # Build the initial state with optional card context
         initial_state = {
             "query": request.message,
-            "messages": [],
-            "card_context": request.card_context  # Pass through flashcard context if present
+            "messages": []
         }
 
         result = studybuddy.invoke(initial_state)
@@ -728,7 +702,6 @@ def chat(request: ChatRequest):
         return ChatResponse(
             reply=result.get("response", "I couldn't generate a response."),
             confidence=result.get("confidence", 0.0),
-            flashcard=result.get("flashcard_suggestion"),
             analysis={
                 "query_type": result.get("query_type"),
                 "complexity": result.get("complexity"),
