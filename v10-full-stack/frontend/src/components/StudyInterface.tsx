@@ -381,8 +381,8 @@ export default function StudyInterface({ program, onUpdate, initialView = 'chat'
                             <h3>No cards due for review</h3>
                             <p className="mt-sm">
                                 {totalCards === 0
-                                    ? 'Click "Generate New Card" to create your first flashcard!'
-                                    : 'All caught up! Generate more cards or check back later.'}
+                                    ? 'New cards are being generated. Check back shortly!'
+                                    : 'All caught up! New cards will appear as they become due.'}
                             </p>
                         </div>
                     ) : (
