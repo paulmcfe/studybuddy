@@ -91,7 +91,11 @@ app.add_middleware(
 )
 
 # File upload configuration
-UPLOAD_DIR = Path("uploads")
+# Use /tmp on Vercel (read-only filesystem), local uploads/ otherwise
+if os.environ.get("VERCEL"):
+    UPLOAD_DIR = Path("/tmp/uploads")
+else:
+    UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 ALLOWED_TYPES = {"application/pdf", "text/markdown", "text/plain"}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
