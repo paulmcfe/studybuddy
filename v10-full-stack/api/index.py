@@ -27,7 +27,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import aiofiles
@@ -134,6 +134,16 @@ class FlashcardReviewRequest(BaseModel):
 class ChatMessage(BaseModel):
     message: str
     conversation_id: Optional[str] = None
+
+
+class ChatMessageItem(BaseModel):
+    role: str  # 'user' or 'assistant'
+    content: str
+
+
+class ChatRequest(BaseModel):
+    message: str
+    history: list[ChatMessageItem] = []
 
 
 # ============== Helper Functions ==============
@@ -1042,7 +1052,64 @@ async def get_program_stats(
     }
 
 
-# ============== Chat/WebSocket Endpoints ==============
+# ============== Chat Endpoints ==============
+
+
+@app.post("/api/programs/{program_id}/chat")
+async def chat_with_tutor(
+    program_id: str,
+    request: ChatRequest,
+    db: Session = Depends(get_db_dependency),
+):
+    """Chat with the AI tutor using HTTP streaming."""
+    from langchain_openai import ChatOpenAI
+
+    user_id = get_current_user_id()
+    program = await get_program_or_404(program_id, user_id, db)
+
+    # Initialize retriever
+    retriever = get_program_retriever(program)
+
+    # Retrieve context
+    docs = retriever.search(request.message, k=3)
+    context = "\n\n".join(doc.page_content for doc in docs) if docs else ""
+
+    # Build system prompt
+    system_prompt = f"""You are a helpful tutor for the learning program: {program.name}
+
+Use the following context to answer questions accurately and helpfully:
+
+{context}
+
+If the context doesn't contain relevant information, say so honestly."""
+
+    # Build messages
+    messages = [("system", system_prompt)]
+    for msg in request.history:
+        messages.append((msg.role, msg.content))
+    messages.append(("user", request.message))
+
+    # Create streaming LLM
+    llm = ChatOpenAI(model="gpt-4o", streaming=True)
+
+    async def generate():
+        """Stream the response chunks."""
+        async for chunk in llm.astream(messages):
+            if chunk.content:
+                yield f"data: {chunk.content}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
+    )
+
+
+# ============== WebSocket Endpoints (for local development) ==============
 
 
 @app.websocket("/ws/study/{program_id}")

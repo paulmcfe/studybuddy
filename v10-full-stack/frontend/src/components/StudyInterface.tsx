@@ -47,23 +47,22 @@ export default function StudyInterface({ program, onUpdate, initialView = 'chat'
     const [view, setView] = useState<'chat' | 'flashcards'>(initialView)
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
-    const [isConnected, setIsConnected] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [dueCards, setDueCards] = useState<Card[]>([])
     const [currentCardIndex, setCurrentCardIndex] = useState(0)
     const [isGenerating, setIsGenerating] = useState(false)
     const [totalCards, setTotalCards] = useState(0)
     const [reviewFeedback, setReviewFeedback] = useState<string | null>(null)
-    const wsRef = useRef<WebSocket | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
+    const abortControllerRef = useRef<AbortController | null>(null)
 
     useEffect(() => {
-        connectWebSocket()
         loadDueCards()
 
         return () => {
-            if (wsRef.current) {
-                wsRef.current.close()
+            // Cancel any ongoing chat request
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort()
             }
         }
     }, [program.id])
@@ -91,47 +90,6 @@ export default function StudyInterface({ program, onUpdate, initialView = 'chat'
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [messages])
-
-    const connectWebSocket = () => {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        const wsUrl = `${protocol}//${window.location.host}/ws/study/${program.id}`
-
-        wsRef.current = new WebSocket(wsUrl)
-
-        wsRef.current.onopen = () => {
-            setIsConnected(true)
-        }
-
-        wsRef.current.onmessage = (event) => {
-            const data = JSON.parse(event.data)
-
-            if (data.type === 'response') {
-                setMessages((prev) => [
-                    ...prev,
-                    { role: 'assistant', content: data.content },
-                ])
-                setIsLoading(false)
-            } else if (data.type === 'status') {
-                // Could show status updates
-            } else if (data.type === 'error') {
-                setMessages((prev) => [
-                    ...prev,
-                    { role: 'assistant', content: `Error: ${data.message}` },
-                ])
-                setIsLoading(false)
-            }
-        }
-
-        wsRef.current.onclose = () => {
-            setIsConnected(false)
-            // Reconnect after delay
-            setTimeout(connectWebSocket, 3000)
-        }
-
-        wsRef.current.onerror = () => {
-            setIsConnected(false)
-        }
-    }
 
     const loadDueCards = async () => {
         try {
@@ -188,26 +146,89 @@ export default function StudyInterface({ program, onUpdate, initialView = 'chat'
         }
     }
 
-    const sendMessage = () => {
-        if (!input.trim() || !isConnected || isLoading) return
+    const sendMessage = async () => {
+        if (!input.trim() || isLoading) return
 
         const message = input.trim()
         setInput('')
         setMessages((prev) => [...prev, { role: 'user', content: message }])
         setIsLoading(true)
 
-        wsRef.current?.send(
-            JSON.stringify({
-                type: 'chat',
-                message: message,
+        // Create abort controller for this request
+        abortControllerRef.current = new AbortController()
+
+        try {
+            const response = await fetch(`/api/programs/${program.id}/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message,
+                    history: messages,
+                }),
+                signal: abortControllerRef.current.signal,
             })
-        )
+
+            if (!response.ok) {
+                throw new Error('Chat request failed')
+            }
+
+            const reader = response.body?.getReader()
+            if (!reader) {
+                throw new Error('No response body')
+            }
+
+            const decoder = new TextDecoder()
+            let assistantMessage = ''
+
+            // Add placeholder message for streaming
+            setMessages((prev) => [...prev, { role: 'assistant', content: '' }])
+
+            while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+
+                const chunk = decoder.decode(value)
+                const lines = chunk.split('\n')
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6)
+                        if (data === '[DONE]') {
+                            break
+                        }
+                        assistantMessage += data
+                        // Update the last message with accumulated content
+                        setMessages((prev) => {
+                            const newMessages = [...prev]
+                            newMessages[newMessages.length - 1] = {
+                                role: 'assistant',
+                                content: assistantMessage,
+                            }
+                            return newMessages
+                        })
+                    }
+                }
+            }
+        } catch (error) {
+            if ((error as Error).name === 'AbortError') {
+                // Request was cancelled, ignore
+                return
+            }
+            console.error('Chat error:', error)
+            setMessages((prev) => [
+                ...prev.filter((m) => m.content !== ''),
+                { role: 'assistant', content: 'Sorry, there was an error processing your request.' },
+            ])
+        } finally {
+            setIsLoading(false)
+            abortControllerRef.current = null
+        }
     }
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
-            sendMessage()
+            void sendMessage()
         }
     }
 
@@ -324,17 +345,13 @@ export default function StudyInterface({ program, onUpdate, initialView = 'chat'
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder={
-                                isConnected
-                                    ? 'Ask a question...'
-                                    : 'Connecting...'
-                            }
-                            disabled={!isConnected || isLoading}
+                            placeholder="Ask a question..."
+                            disabled={isLoading}
                         />
                         <button
                             className="btn-primary"
-                            onClick={sendMessage}
-                            disabled={!isConnected || isLoading || !input.trim()}
+                            onClick={() => void sendMessage()}
+                            disabled={isLoading || !input.trim()}
                         >
                             Send
                         </button>
