@@ -28,6 +28,25 @@ Focus on practical, actionable learning objectives.
 """)
 
 
+CURRICULUM_FROM_DOCUMENTS_PROMPT = ChatPromptTemplate.from_template("""You are an expert curriculum designer. Based on the following document content, create a structured curriculum that covers all the key topics and concepts found in the material.
+
+Program name: {program_name}
+Program description: {program_description}
+
+Document content samples:
+{document_content}
+
+Structure your response as a markdown document with:
+- Chapters using # Chapter N: Title format
+- Topics using ## Topic Name format
+- Subtopics using - Subtopic format
+
+Create a logical learning progression based on the actual content in the documents. Group related topics into chapters and identify subtopics for each main topic.
+
+Include approximately {chapter_count} chapters, but adjust based on the scope of the material. Focus on the actual content present in the documents rather than general knowledge about the subject.
+""")
+
+
 async def generate_curriculum(
     topic: str,
     depth: str = "intermediate",
@@ -44,6 +63,30 @@ async def generate_curriculum(
     result = await chain.ainvoke({
         "topic": topic,
         "depth": depth,
+        "chapter_count": chapter_count,
+    })
+
+    return result.content
+
+
+async def generate_curriculum_from_documents(
+    program_name: str,
+    program_description: str,
+    document_content: str,
+    chapter_count: int = 6,
+) -> str:
+    """Generate a curriculum based on uploaded document content.
+
+    Returns markdown-formatted curriculum text.
+    """
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
+
+    chain = CURRICULUM_FROM_DOCUMENTS_PROMPT | llm
+
+    result = await chain.ainvoke({
+        "program_name": program_name,
+        "program_description": program_description or program_name,
+        "document_content": document_content,
         "chapter_count": chapter_count,
     })
 

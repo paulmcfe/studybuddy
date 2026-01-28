@@ -843,6 +843,10 @@ label {
   cursor: pointer;
 }
 
+.curriculum-toggle.disabled {
+  cursor: default;
+}
+
 .curriculum-arrow {
   font-size: var(--font-xl);
 }

@@ -11,7 +11,7 @@ interface Program {
 }
 
 interface CreateProgramProps {
-    onCreated: (program: Program) => void
+    onCreated: (program: Program, navigateTo?: 'overview' | 'documents') => void
     onCancel: () => void
 }
 
@@ -67,7 +67,7 @@ export default function CreateProgram({ onCreated, onCancel }: CreateProgramProp
                 }
             }
 
-            onCreated(program)
+            onCreated(program, createMode === 'manual' ? 'documents' : 'overview')
         } catch (error) {
             console.error('Error creating program:', error)
             alert('Failed to create program')
@@ -118,7 +118,7 @@ export default function CreateProgram({ onCreated, onCancel }: CreateProgramProp
                             onClick={() => setCreateMode('manual')}
                             disabled={!canSelectCurriculum}
                         >
-                            Start Empty
+                            Document-Based
                         </button>
                         <button
                             type="button"
@@ -126,14 +126,13 @@ export default function CreateProgram({ onCreated, onCancel }: CreateProgramProp
                             onClick={() => setCreateMode('generate')}
                             disabled={!canSelectCurriculum}
                         >
-                            Generate with AI
+                            AI-Generated
                         </button>
                     </div>
 
                     {createMode === 'manual' && (
                         <p className="text-secondary">
-                            Upload your own documents and the AI tutor will use them directly.
-                            Later, from the program overview, you can generate a curriculum based on your program description.
+                            Upload your own documents and the AI tutor will generate a curriculum based on the document content.
                         </p>
                     )}
 

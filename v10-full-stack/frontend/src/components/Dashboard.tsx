@@ -13,6 +13,7 @@ interface Stats {
         indexed: number
         pending: number
         total: number
+        recently_indexed?: boolean
     }
     flashcards: {
         total: number
@@ -60,11 +61,36 @@ export default function Dashboard({
     const [loading, setLoading] = useState(true)
     const [isDeleting, setIsDeleting] = useState(false)
     const [isGeneratingCurriculum, setIsGeneratingCurriculum] = useState(false)
+    const [lastKnownDocCount, setLastKnownDocCount] = useState<number | null>(null)
+    const [isUpdatingCurriculum, setIsUpdatingCurriculum] = useState(false)
+    const [lastKnownTopicCount, setLastKnownTopicCount] = useState<number | null>(null)
+    const [hadCurriculumBefore, setHadCurriculumBefore] = useState(false)
 
     useEffect(() => {
         if (program?.id) {
-            loadStats()
-            loadCurriculum()
+            // Reset tracking state when program changes
+            setLastKnownDocCount(null)
+            setIsUpdatingCurriculum(false)
+            setLastKnownTopicCount(null)
+            setHadCurriculumBefore(false)
+
+            // Load data and check if curriculum already exists
+            const loadInitialData = async () => {
+                const statsResponse = await fetch(`/api/programs/${program.id}/stats`)
+                const statsData = await statsResponse.json()
+                setStats(statsData)
+
+                // If curriculum already exists when we load, mark it as "had before"
+                // This prevents showing "Updating curriculum..." for existing programs
+                const existingTopicCount = statsData?.topics?.total ?? 0
+                if (existingTopicCount > 0) {
+                    setHadCurriculumBefore(true)
+                }
+
+                await loadCurriculum()
+                setLoading(false)
+            }
+            loadInitialData()
         }
     }, [program?.id])
 
@@ -80,6 +106,116 @@ export default function Dashboard({
         return () => clearInterval(pollInterval)
     }, [program?.id, stats?.flashcards?.total])
 
+    // Poll for curriculum while documents are being indexed (Document-Based workflow)
+    const hasDocuments = (stats?.documents?.total ?? 0) > 0
+    const hasCurriculum = (stats?.topics?.total ?? 0) > 0
+    const isIndexingDocuments = (stats?.documents?.pending ?? 0) > 0
+    const recentlyIndexed = stats?.documents?.recently_indexed ?? false
+    const currentDocCount = stats?.documents?.indexed ?? 0
+    const currentTopicCount = stats?.topics?.total ?? 0
+
+    // Detect when curriculum is being generated for the first time from documents
+    // This should only be true for initial generation, NOT for updates to existing curriculum
+    // Once hadCurriculumBefore is true, we've moved past initial generation
+    const isGeneratingCurriculumFromDocs = hasDocuments && !hasCurriculum && !hadCurriculumBefore
+
+    // Track when we've seen a curriculum (to distinguish initial generation from updates)
+    // Only set hadCurriculumBefore=true AFTER recentlyIndexed becomes false
+    // This prevents showing "Updating curriculum..." during initial generation
+    useEffect(() => {
+        if (hasCurriculum && !hadCurriculumBefore && !recentlyIndexed && !isIndexingDocuments) {
+            console.log('Dashboard: Curriculum stable (not recently indexed), setting hadCurriculumBefore=true')
+            setHadCurriculumBefore(true)
+        }
+    }, [hasCurriculum, hadCurriculumBefore, recentlyIndexed, isIndexingDocuments])
+
+    // Detect when curriculum might be updating (document count changed, or documents recently indexed)
+    // Only trigger "Updating" state if we had a curriculum BEFORE (not during initial generation)
+    // AND only for document-based programs (hasDocuments must be true)
+    useEffect(() => {
+        // Skip all update detection for programs without documents (AI-generated programs)
+        // Curriculum updates only happen when documents are indexed
+        if (!hasDocuments) {
+            return
+        }
+
+        // Case 1: Document count changed while we have a curriculum that existed before
+        if (lastKnownDocCount !== null && currentDocCount !== lastKnownDocCount && hasCurriculum && hadCurriculumBefore) {
+            console.log('Dashboard: Document count changed, setting isUpdatingCurriculum=true')
+            setIsUpdatingCurriculum(true)
+        }
+        // Case 2: There are pending documents and we have a curriculum that existed before
+        if (isIndexingDocuments && hasCurriculum && hadCurriculumBefore && !isUpdatingCurriculum) {
+            console.log('Dashboard: Documents indexing with existing curriculum, setting isUpdatingCurriculum=true')
+            setIsUpdatingCurriculum(true)
+        }
+        // Case 3: Documents were recently indexed (within 30 seconds) - curriculum may still be regenerating
+        // Only if we had a curriculum before (not during initial generation completing)
+        if (recentlyIndexed && hasCurriculum && hadCurriculumBefore && !isUpdatingCurriculum) {
+            console.log('Dashboard: Documents recently indexed, setting isUpdatingCurriculum=true')
+            setIsUpdatingCurriculum(true)
+        }
+        if (currentDocCount > 0) {
+            setLastKnownDocCount(currentDocCount)
+        }
+    }, [currentDocCount, hasCurriculum, hadCurriculumBefore, hasDocuments, lastKnownDocCount, isIndexingDocuments, isUpdatingCurriculum, recentlyIndexed])
+
+    // Clear updating state when curriculum topic count changes (curriculum was regenerated)
+    useEffect(() => {
+        if (!isUpdatingCurriculum) {
+            setLastKnownTopicCount(currentTopicCount)
+            return
+        }
+
+        // If topic count changed while updating, the curriculum was regenerated
+        if (lastKnownTopicCount !== null && currentTopicCount !== lastKnownTopicCount && !isIndexingDocuments) {
+            console.log('Dashboard: Topic count changed, curriculum updated, clearing isUpdatingCurriculum')
+            setIsUpdatingCurriculum(false)
+            setLastKnownTopicCount(currentTopicCount)
+            return
+        }
+
+        // Set initial topic count if not set
+        if (lastKnownTopicCount === null && currentTopicCount > 0) {
+            setLastKnownTopicCount(currentTopicCount)
+        }
+    }, [isUpdatingCurriculum, currentTopicCount, lastKnownTopicCount, isIndexingDocuments])
+
+    // Timeout: Clear updating state after waiting for curriculum regeneration to complete
+    useEffect(() => {
+        if (!isUpdatingCurriculum) return
+        if (isIndexingDocuments) return // Still indexing, wait longer
+        if (recentlyIndexed) return // Recently indexed, curriculum might still be regenerating
+
+        // Documents finished indexing and enough time has passed - clear the updating state
+        const timer = setTimeout(() => {
+            console.log('Dashboard: Timeout reached, clearing isUpdatingCurriculum')
+            loadCurriculum().then(() => {
+                setIsUpdatingCurriculum(false)
+            })
+        }, 5000) // 5 seconds after recentlyIndexed becomes false
+
+        return () => clearTimeout(timer)
+    }, [isUpdatingCurriculum, isIndexingDocuments, recentlyIndexed])
+
+    useEffect(() => {
+        // Poll while curriculum is being generated or updated from documents
+        const shouldPoll = isGeneratingCurriculumFromDocs || isIndexingDocuments || isUpdatingCurriculum
+
+        if (!shouldPoll) return
+
+        console.log('Dashboard: Starting poll loop', { isGeneratingCurriculumFromDocs, isIndexingDocuments, isUpdatingCurriculum })
+
+        const pollInterval = setInterval(async () => {
+            await loadCurriculum()
+            await loadStats()
+        }, 2000) // Check every 2 seconds
+
+        return () => {
+            clearInterval(pollInterval)
+        }
+    }, [program?.id, isGeneratingCurriculumFromDocs, isIndexingDocuments, isUpdatingCurriculum])
+
     const loadStats = async () => {
         try {
             const response = await fetch(`/api/programs/${program.id}/stats`)
@@ -87,8 +223,6 @@ export default function Dashboard({
             setStats(data)
         } catch (error) {
             console.error('Failed to load stats:', error)
-        } finally {
-            setLoading(false)
         }
     }
 
@@ -239,31 +373,32 @@ export default function Dashboard({
                 </div>
             )}
 
-            {stats?.documents?.total === 0 && (
-                <div className="card empty-state">
-                    <div className="empty-state-icon">📚</div>
-                    <h3>No Documents Yet</h3>
-                    <p className="mt-sm mb-md">
-                        Upload some documents to start building your knowledge base.
-                    </p>
-                    <button onClick={() => onNavigate('documents')} className="btn-primary">
-                        Upload Documents
-                    </button>
-                </div>
-            )}
-
-            {(stats?.topics?.total ?? 0) > 0 && curriculum ? (
+            {hasCurriculum && curriculum ? (
                 <div className="card mt-lg">
                     <div
-                        className="curriculum-toggle"
-                        onClick={() => setShowCurriculum(!showCurriculum)}
+                        className={`curriculum-toggle${isUpdatingCurriculum ? ' disabled' : ''}`}
+                        onClick={() => {
+                            if (!isUpdatingCurriculum) {
+                                setShowCurriculum(!showCurriculum)
+                            }
+                        }}
                     >
                         <h3 className="card-title">
-                            Curriculum ({stats.topics.total} topics)
+                            {isUpdatingCurriculum ? (
+                                <>Updating curriculum...</>
+                            ) : (
+                                <>Curriculum ({stats?.topics?.total} topics)</>
+                            )}
                         </h3>
-                        <span className="curriculum-arrow">
-                            {showCurriculum ? '▼' : '▶'}
-                        </span>
+                        <div className="flex align-center gap-sm">
+                            {isUpdatingCurriculum ? (
+                                <div className="spinner spinner-sm"></div>
+                            ) : (
+                                <span className="curriculum-arrow">
+                                    {showCurriculum ? '▼' : '▶'}
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {showCurriculum && (
@@ -294,7 +429,19 @@ export default function Dashboard({
                         </div>
                     )}
                 </div>
-            ) : program.description && (
+            ) : isGeneratingCurriculumFromDocs ? (
+                <div className="card mt-lg">
+                    <div className="card-header">
+                        <div>
+                            <h3 className="card-title">Generating curriculum...</h3>
+                            <p className="card-subtitle">
+                                Creating a curriculum based on your uploaded documents.
+                            </p>
+                        </div>
+                        <div className="spinner spinner-sm"></div>
+                    </div>
+                </div>
+            ) : program.description && !hasDocuments && (
                 <div className="card mt-lg">
                     <div className="card-header">
                         <div>

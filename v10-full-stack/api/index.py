@@ -59,6 +59,7 @@ from api.services.indexing import (
 )
 from api.services.curriculum import (
     generate_curriculum,
+    generate_curriculum_from_documents,
     parse_topic_list,
     topic_list_to_markdown,
     count_topics,
@@ -288,20 +289,11 @@ async def delete_program(
     program = await get_program_or_404(program_id, user_id, db)
 
     # Delete in correct order due to foreign key constraints:
-    # 1. card_reviews (references flashcards)
-    # 2. flashcards (references learning_programs)
-    # 3. messages (references conversations)
-    # 4. conversations (references learning_programs)
-    # 5. documents (references learning_programs)
-    # 6. learning_programs
-
-    # Delete card reviews for all flashcards in this program
-    db.execute(text("""
-        DELETE FROM card_reviews
-        WHERE flashcard_id IN (
-            SELECT id FROM flashcards WHERE program_id = :program_id
-        )
-    """), {"program_id": program_id})
+    # 1. flashcards (references learning_programs)
+    # 2. messages (references conversations)
+    # 3. conversations (references learning_programs)
+    # 4. documents (references learning_programs)
+    # 5. learning_programs
 
     # Delete flashcards
     db.query(Flashcard).filter(Flashcard.program_id == program_id).delete()
@@ -610,6 +602,9 @@ async def index_document_background(document_id: str, program_id: str):
             document.indexed_at = datetime.utcnow()
             db.commit()
 
+            # Generate/update curriculum from all indexed documents
+            await generate_curriculum_from_indexed_documents(program_id)
+
             # Generate flashcards if the program has fewer than 6
             existing_count = db.query(Flashcard).filter(
                 Flashcard.program_id == program_id
@@ -625,6 +620,80 @@ async def index_document_background(document_id: str, program_id: str):
             db.commit()
             raise
 
+    finally:
+        db.close()
+
+
+async def generate_curriculum_from_indexed_documents(program_id: str):
+    """Generate a curriculum based on indexed document content."""
+    from api.database.connection import SessionLocal
+
+    db = SessionLocal()
+    try:
+        program = db.query(LearningProgram).filter(
+            LearningProgram.id == program_id
+        ).first()
+
+        if not program:
+            print(f"Program {program_id} not found for curriculum generation")
+            return
+
+        # Get document content from the vector store
+        retriever = get_program_retriever(program)
+
+        # Use multiple search queries to get diverse content from all documents
+        search_queries = [
+            program.name,
+            program.description or program.name,
+            "introduction overview",
+            "key concepts main topics",
+        ]
+
+        all_docs = []
+        seen_content = set()
+
+        for query in search_queries:
+            docs = retriever.search(query, k=10)
+            for doc in docs:
+                # Deduplicate by content hash
+                content_hash = hash(doc.page_content[:200])
+                if content_hash not in seen_content:
+                    seen_content.add(content_hash)
+                    all_docs.append(doc)
+
+        if not all_docs:
+            print(f"No content found in vector store for program {program_id}")
+            return
+
+        print(f"Found {len(all_docs)} unique document chunks for curriculum generation")
+
+        # Combine document content for curriculum generation
+        # Take varied samples to cover the breadth of the material
+        document_content = "\n\n---\n\n".join(
+            doc.page_content for doc in all_docs[:15]  # Limit to prevent token overflow
+        )
+
+        # Generate curriculum from document content
+        print(f"Generating curriculum for program {program_id}...")
+        markdown = await generate_curriculum_from_documents(
+            program_name=program.name,
+            program_description=program.description or "",
+            document_content=document_content,
+            chapter_count=6,
+        )
+
+        # Parse and save the curriculum
+        topic_list = parse_topic_list(markdown)
+        program.topic_list = topic_list
+        program.updated_at = datetime.utcnow()
+        db.commit()
+
+        print(f"Generated curriculum for program {program_id} with {count_topics(topic_list)} topics")
+
+    except Exception as e:
+        import traceback
+        print(f"Error generating curriculum from documents: {e}")
+        traceback.print_exc()
     finally:
         db.close()
 
@@ -658,6 +727,21 @@ async def delete_document(
     # Delete record
     db.delete(document)
     db.commit()
+
+    # Check if any documents remain and regenerate curriculum
+    remaining_docs = db.query(Document).filter(
+        Document.program_id == program_id,
+        Document.status == "indexed",
+    ).count()
+
+    if remaining_docs > 0:
+        # Regenerate curriculum from remaining documents
+        asyncio.create_task(generate_curriculum_from_indexed_documents(program_id))
+    else:
+        # No documents left - clear the curriculum
+        program.topic_list = None
+        program.updated_at = datetime.utcnow()
+        db.commit()
 
     return {"status": "deleted", "id": document_id}
 
@@ -928,6 +1012,15 @@ async def get_program_stats(
 
     flashcard_stats = get_flashcard_stats(db, program_id)
 
+    # Check if any documents were recently indexed (within last 30 seconds)
+    # This indicates curriculum might still be regenerating
+    recent_threshold = datetime.utcnow() - timedelta(seconds=30)
+    recently_indexed = any(
+        d.indexed_at and d.indexed_at > recent_threshold
+        for d in program.documents
+        if d.status == "indexed"
+    )
+
     return {
         "program_id": program_id,
         "name": program.name,
@@ -936,6 +1029,7 @@ async def get_program_stats(
             "indexed": sum(1 for d in program.documents if d.status == "indexed"),
             "pending": sum(1 for d in program.documents if d.status == "pending"),
             "failed": sum(1 for d in program.documents if d.status == "failed"),
+            "recently_indexed": recently_indexed,
         },
         "flashcards": flashcard_stats,
         "topics": {

@@ -43,10 +43,10 @@ export default function Home() {
         }
     }
 
-    const handleProgramCreated = (program: Program) => {
+    const handleProgramCreated = (program: Program, navigateTo: 'overview' | 'documents' = 'overview') => {
         setPrograms([program, ...programs])
         setSelectedProgram(program)
-        setView('overview')
+        setView(navigateTo)
     }
 
     const handleProgramSelect = (program: Program) => {
