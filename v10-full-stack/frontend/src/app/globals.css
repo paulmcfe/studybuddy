@@ -852,6 +852,7 @@ label {
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
+  text-align: left;
 }
 
 .curriculum-toggle.disabled {
@@ -864,6 +865,7 @@ label {
 
 .curriculum-content {
   margin-top: var(--spacing-md);
+  text-align: left;
 }
 
 .curriculum-chapter {
