@@ -9,7 +9,7 @@ interface Program {
     flashcard_count: number
 }
 
-type View = 'overview' | 'study' | 'documents' | 'new-program'
+type View = 'overview' | 'study' | 'flashcards' | 'documents' | 'new-program'
 
 interface SidebarProps {
     programs: Program[]
@@ -46,74 +46,23 @@ export default function Sidebar({
     return (
         <aside className="sidebar">
             <div className="sidebar-header">
-                <h1 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
-                    StudyBuddy
-                </h1>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                    v10 - Learn Anything
-                </span>
+                <div className="sidebar-brand">
+                    <img
+                        src="/images/studybuddy-icon.png"
+                        alt=""
+                        className="sidebar-brand-icon"
+                    />
+                    <h1 className="sidebar-brand-title">StudyBuddy</h1>
+                </div>
+                <span className="sidebar-version">v10 - Learn Anything</span>
             </div>
 
-            <nav style={{ marginTop: '1.5rem' }}>
-                <button
-                    onClick={() => onNavigate('overview')}
-                    className={`tab ${currentView === 'overview' ? 'active' : ''}`}
-                    style={{
-                        display: 'block',
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '0.5rem',
-                        borderRadius: 'var(--radius-md)',
-                        marginBottom: '0.25rem',
-                        background: 'none',
-                        border: 'none',
-                    }}
-                >
-                    Overview
-                </button>
-                <button
-                    onClick={() => onNavigate('study')}
-                    className={`tab ${currentView === 'study' ? 'active' : ''}`}
-                    style={{
-                        display: 'block',
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '0.5rem',
-                        borderRadius: 'var(--radius-md)',
-                        marginBottom: '0.25rem',
-                        background: 'none',
-                        border: 'none',
-                    }}
-                >
-                    Study
-                </button>
-                <button
-                    onClick={() => onNavigate('documents')}
-                    className={`tab ${currentView === 'documents' ? 'active' : ''}`}
-                    style={{
-                        display: 'block',
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '0.5rem',
-                        borderRadius: 'var(--radius-md)',
-                        marginBottom: '0.25rem',
-                        background: 'none',
-                        border: 'none',
-                    }}
-                >
-                    Documents
-                </button>
-            </nav>
-
-            <div style={{ marginTop: '2rem' }}>
+            <div className="sidebar-section">
                 <div className="flex justify-between items-center">
-                    <h3 style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-                        Programs
-                    </h3>
+                    <h3 className="sidebar-section-title">Programs</h3>
                     <button
                         onClick={() => onNavigate('new-program')}
-                        className="btn-secondary"
-                        style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                        className="btn-secondary btn-sm"
                     >
                         + New
                     </button>
@@ -121,9 +70,7 @@ export default function Sidebar({
 
                 <ul className="program-list">
                     {programs.length === 0 ? (
-                        <li className="empty-state" style={{ padding: '1rem' }}>
-                            No programs yet
-                        </li>
+                        <li className="empty-state">No programs yet</li>
                     ) : (
                         programs.map((program) => (
                             <li
@@ -135,7 +82,7 @@ export default function Sidebar({
                             >
                                 <div className="program-name">{program.name}</div>
                                 <div className="program-meta">
-                                    {program.document_count} docs · {program.flashcard_count} cards
+                                    {program.document_count} {program.document_count === 1 ? 'doc' : 'docs'} · {program.flashcard_count} {program.flashcard_count === 1 ? 'card' : 'cards'}
                                 </div>
                             </li>
                         ))
@@ -143,25 +90,40 @@ export default function Sidebar({
                 </ul>
             </div>
 
-            <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
+            {selectedProgram && (
+                <nav className="sidebar-nav">
+                    <h3 className="sidebar-nav-title">{selectedProgram.name}</h3>
+                    <button
+                        onClick={() => onNavigate('overview')}
+                        className={`sidebar-nav-btn tab ${currentView === 'overview' ? 'active' : ''}`}
+                    >
+                        Overview
+                    </button>
+                    <button
+                        onClick={() => onNavigate('flashcards')}
+                        className={`sidebar-nav-btn tab ${currentView === 'study' || currentView === 'flashcards' ? 'active' : ''}`}
+                    >
+                        Study
+                    </button>
+                    <button
+                        onClick={() => onNavigate('documents')}
+                        className={`sidebar-nav-btn tab ${currentView === 'documents' ? 'active' : ''}`}
+                    >
+                        Documents
+                    </button>
+                </nav>
+            )}
+
+            <div className="sidebar-footer">
                 <button
                     type="button"
                     onClick={toggleTheme}
-                    className="theme-toggle"
+                    className="theme-toggle mb-sm"
                     aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                    style={{ marginBottom: '0.5rem' }}
                 >
                     {theme === 'dark' ? '☀️' : '🌙'}
                 </button>
-                <a
-                    href="/api/health"
-                    target="_blank"
-                    style={{
-                        fontSize: '0.75rem',
-                        color: 'var(--color-text-muted)',
-                        display: 'block',
-                    }}
-                >
+                <a href="/api/health" target="_blank" className="sidebar-link">
                     API Health Check
                 </a>
             </div>

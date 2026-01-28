@@ -281,15 +281,50 @@ async def delete_program(
     program_id: str,
     db: Session = Depends(get_db_dependency),
 ):
-    """Archive a program (soft delete)."""
+    """Delete a program and all associated data."""
+    from sqlalchemy import text
+
     user_id = get_current_user_id()
     program = await get_program_or_404(program_id, user_id, db)
 
-    program.status = "archived"
-    program.updated_at = datetime.utcnow()
+    # Delete in correct order due to foreign key constraints:
+    # 1. card_reviews (references flashcards)
+    # 2. flashcards (references learning_programs)
+    # 3. messages (references conversations)
+    # 4. conversations (references learning_programs)
+    # 5. documents (references learning_programs)
+    # 6. learning_programs
+
+    # Delete card reviews for all flashcards in this program
+    db.execute(text("""
+        DELETE FROM card_reviews
+        WHERE flashcard_id IN (
+            SELECT id FROM flashcards WHERE program_id = :program_id
+        )
+    """), {"program_id": program_id})
+
+    # Delete flashcards
+    db.query(Flashcard).filter(Flashcard.program_id == program_id).delete()
+
+    # Delete messages for all conversations in this program
+    db.execute(text("""
+        DELETE FROM messages
+        WHERE conversation_id IN (
+            SELECT id FROM conversations WHERE program_id = :program_id
+        )
+    """), {"program_id": program_id})
+
+    # Delete conversations
+    db.execute(text("DELETE FROM conversations WHERE program_id = :program_id"), {"program_id": program_id})
+
+    # Delete documents
+    db.query(Document).filter(Document.program_id == program_id).delete()
+
+    # Delete the program
+    db.delete(program)
     db.commit()
 
-    return {"status": "archived", "id": program.id}
+    return {"status": "deleted", "id": program_id}
 
 
 # ============== Curriculum Generation ==============
@@ -310,28 +345,77 @@ async def generate_initial_flashcards(program_id: str, num_cards: int = 6):
 
         retriever = get_program_retriever(program)
 
-        for _ in range(num_cards):
-            # Get next topic from curriculum
-            topic = await get_next_curriculum_topic(program, db)
+        # Check if program has a curriculum
+        topic_list = program.topic_list or {}
+        has_curriculum = bool(topic_list.get("chapters", []))
 
-            if not topic:
-                # No more topics, use program name
-                topic = f"{program.name} concepts"
+        if has_curriculum:
+            # Use curriculum-based generation
+            for _ in range(num_cards):
+                topic = await get_next_curriculum_topic(program, db)
+                if not topic:
+                    topic = f"{program.name} concepts"
 
-            # Get context from documents or use general knowledge
-            docs = retriever.search(topic, k=3)
-            if docs:
-                context = "\n\n".join(doc.page_content for doc in docs)
+                docs = retriever.search(topic, k=3)
+                if docs:
+                    context = "\n\n".join(doc.page_content for doc in docs)
+                else:
+                    context = f"General knowledge about {topic}. No specific documents available."
+
+                await generate_flashcard(
+                    topic=topic,
+                    context=context,
+                    program_id=program_id,
+                    db=db,
+                )
+        else:
+            # No curriculum - extract diverse chunks from documents
+            # Fetch more chunks than needed to ensure diversity
+            all_docs = retriever.search(program.name, k=num_cards * 3)
+
+            if not all_docs:
+                # No documents indexed yet, use general topic
+                for i in range(num_cards):
+                    topic = f"{program.name}: concept {i + 1}"
+                    context = f"General knowledge about {program.name}."
+                    await generate_flashcard(
+                        topic=topic,
+                        context=context,
+                        program_id=program_id,
+                        db=db,
+                    )
             else:
-                context = f"General knowledge about {topic}. No specific documents available."
+                # Use each chunk as basis for a unique flashcard
+                used_contexts = set()
+                cards_generated = 0
 
-            # Generate flashcard
-            await generate_flashcard(
-                topic=topic,
-                context=context,
-                program_id=program_id,
-                db=db,
-            )
+                for doc in all_docs:
+                    if cards_generated >= num_cards:
+                        break
+
+                    # Skip if we've already used very similar content
+                    content_preview = doc.page_content[:200]
+                    if content_preview in used_contexts:
+                        continue
+                    used_contexts.add(content_preview)
+
+                    # Extract topic from the chunk content (first line or phrase)
+                    lines = doc.page_content.strip().split('\n')
+                    first_line = lines[0].strip() if lines else program.name
+                    # Clean up the topic - limit length and remove special chars
+                    topic = first_line[:80].strip('# ').strip()
+                    if not topic or len(topic) < 5:
+                        topic = f"{program.name}: section {cards_generated + 1}"
+
+                    context = doc.page_content
+
+                    await generate_flashcard(
+                        topic=topic,
+                        context=context,
+                        program_id=program_id,
+                        db=db,
+                    )
+                    cards_generated += 1
 
     except Exception as e:
         print(f"Error generating initial flashcards: {e}")
@@ -344,24 +428,39 @@ async def generate_program_curriculum(
     program_id: str,
     request: CurriculumGenerateRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db_dependency),
 ):
     """Generate a curriculum for a program using AI."""
-    user_id = get_current_user_id()
-    program = await get_program_or_404(program_id, user_id, db)
+    from api.database.connection import SessionLocal
 
-    # Generate curriculum
+    # Step 1: Validate program exists (quick DB check, then release connection)
+    db = SessionLocal()
+    try:
+        user_id = get_current_user_id()
+        program = await get_program_or_404(program_id, user_id, db)
+        # Just verify it exists
+    finally:
+        db.close()
+
+    # Step 2: Generate curriculum (slow OpenAI call - no DB connection held)
     markdown = await generate_curriculum(
         topic=request.topic,
         depth=request.depth,
         chapter_count=request.chapter_count,
     )
 
-    # Parse and save
-    topic_list = parse_topic_list(markdown)
-    program.topic_list = topic_list
-    program.updated_at = datetime.utcnow()
-    db.commit()
+    # Step 3: Save results (quick DB operation)
+    db = SessionLocal()
+    try:
+        program = db.query(LearningProgram).filter(
+            LearningProgram.id == program_id
+        ).first()
+
+        topic_list = parse_topic_list(markdown)
+        program.topic_list = topic_list
+        program.updated_at = datetime.utcnow()
+        db.commit()
+    finally:
+        db.close()
 
     # Generate initial flashcards in the background
     background_tasks.add_task(generate_initial_flashcards, program_id, 6)
@@ -510,6 +609,15 @@ async def index_document_background(document_id: str, program_id: str):
             document.chunks_count = chunks_count
             document.indexed_at = datetime.utcnow()
             db.commit()
+
+            # Generate flashcards if the program has fewer than 6
+            existing_count = db.query(Flashcard).filter(
+                Flashcard.program_id == program_id
+            ).count()
+
+            if existing_count < 6:
+                cards_to_generate = 6 - existing_count
+                await generate_initial_flashcards(program_id, cards_to_generate)
 
         except Exception as e:
             document.status = "failed"
@@ -660,21 +768,59 @@ async def generate_flashcard_endpoint(
             docs = retriever.search(topic, k=3)
         else:
             # No curriculum - sample random content from documents
-            docs = retriever.search(program.name, k=5)
-            if docs:
-                # Pick a random chunk as the basis
-                import random
-                doc = random.choice(docs)
-                topic = f"{program.name} concepts"
+            # Get existing flashcard contexts to avoid duplicates
+            existing_contexts = set(
+                fc.source_context[:200] for fc in db.query(Flashcard).filter(
+                    Flashcard.program_id == program_id
+                ).all() if fc.source_context
+            )
+
+            # Search for more chunks to have options
+            import random
+            all_docs = retriever.search(program.name, k=20)
+
+            # Filter out chunks already used for flashcards
+            unused_docs = [
+                doc for doc in all_docs
+                if doc.page_content[:200] not in existing_contexts
+            ]
+
+            if unused_docs:
+                doc = random.choice(unused_docs)
                 docs = [doc]
+            elif all_docs:
+                # All chunks used, pick a random one anyway (will likely return cached card)
+                doc = random.choice(all_docs)
+                docs = [doc]
+
+            topic = f"{program.name} concepts"
 
     if docs:
         context = "\n\n".join(doc.page_content for doc in docs)
     else:
-        # No documents - use LLM knowledge
+        # No documents - use LLM knowledge with clear scope boundaries
         if not topic:
             topic = program.name
-        context = f"General knowledge about {topic}. No specific documents available."
+        description = program.description or program.name
+
+        # Get count of existing flashcards to ensure unique hash for each generation
+        existing_count = db.query(Flashcard).filter(
+            Flashcard.program_id == program_id
+        ).count()
+
+        context = f"""Subject: {program.name}
+Description: {description}
+Card number: {existing_count + 1}
+
+CRITICAL REQUIREMENTS:
+1. Generate a flashcard testing ACTUAL SUBJECT KNOWLEDGE from {program.name}
+2. The card must test a specific fact, formula, definition, or concept from the subject itself
+3. Do NOT create cards about: study habits, course expectations, how to learn, time management, or any meta-topics about studying
+4. Do NOT include concepts from more advanced courses (e.g., no calculus in precalculus)
+5. Focus on testable facts: formulas, definitions, properties, examples, and problem-solving techniques
+6. Generate a DIFFERENT card than any previous cards - vary the specific topic and concept tested
+
+For precalculus, good topics include: trigonometric identities, unit circle values, polynomial properties, logarithm rules, function transformations, etc."""
 
     # Generate flashcard
     card = await generate_flashcard(
@@ -695,6 +841,8 @@ async def generate_flashcard_endpoint(
         "topic": card.topic,
         "question": card.question,
         "answer": card.answer,
+        "interval": card.interval,
+        "repetitions": card.repetitions,
     }
 
 

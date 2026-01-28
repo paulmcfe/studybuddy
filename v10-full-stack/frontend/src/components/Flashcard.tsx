@@ -7,6 +7,23 @@ interface Card {
     topic: string
     question: string
     answer: string
+    interval: number
+    repetitions: number
+}
+
+function getCardStatus(card: Card): { label: string; status: string } {
+    const interval = card.interval ?? 0
+    const repetitions = card.repetitions ?? 0
+
+    if (interval > 21) {
+        return { label: 'Mastered', status: 'mastered' }
+    } else if (repetitions === 0) {
+        return { label: 'New', status: 'new' }
+    } else if (interval <= 1) {
+        return { label: 'Still Learning', status: 'learning' }
+    } else {
+        return { label: 'Reviewing', status: 'reviewing' }
+    }
 }
 
 interface FlashcardProps {
@@ -30,28 +47,35 @@ export default function Flashcard({ card, onReview }: FlashcardProps) {
         onReview(quality)
     }
 
+    const status = getCardStatus(card)
+
     return (
         <div>
             <div className="flashcard" onClick={handleClick}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
-                    {card.topic}
+                <div className="flashcard-header">
+                    <span className="flashcard-topic">
+                        {card.topic}
+                    </span>
+                    <span className="flashcard-status" data-status={status.status}>
+                        {status.label}
+                    </span>
                 </div>
                 <div className="flashcard-question">{card.question}</div>
                 {showAnswer && (
                     <div className="flashcard-answer">{card.answer}</div>
                 )}
                 {!showAnswer && (
-                    <p style={{ marginTop: '2rem', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+                    <p className="flashcard-hint">
                         Click to reveal answer
                     </p>
                 )}
             </div>
 
-            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-                <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>
-                    Did you remember this?
+            <div className="flashcard-review">
+                <p className="flashcard-review-question">
+                    Did you know it?
                 </p>
-                <div className="flashcard-actions" style={{ justifyContent: 'center' }}>
+                <div className="flashcard-actions flashcard-actions-centered">
                     <button
                         className="btn-danger"
                         onClick={() => handleReview(1)}
@@ -62,7 +86,7 @@ export default function Flashcard({ card, onReview }: FlashcardProps) {
                         className="btn-secondary"
                         onClick={() => handleReview(3)}
                     >
-                        Took a sec
+                        Struggled
                     </button>
                     <button
                         className="btn-success"
@@ -71,6 +95,11 @@ export default function Flashcard({ card, onReview }: FlashcardProps) {
                         Yes
                     </button>
                 </div>
+                <p className="flashcard-review-count">
+                    {(card.repetitions ?? 0) === 0
+                        ? 'First time seeing this card'
+                        : `Reviewed ${card.repetitions} time${card.repetitions === 1 ? '' : 's'}`}
+                </p>
             </div>
         </div>
     )

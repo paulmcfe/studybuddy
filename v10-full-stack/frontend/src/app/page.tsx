@@ -15,7 +15,7 @@ interface Program {
     flashcard_count: number
 }
 
-type View = 'overview' | 'study' | 'documents' | 'new-program'
+type View = 'overview' | 'study' | 'flashcards' | 'documents' | 'new-program'
 
 export default function Home() {
     const [programs, setPrograms] = useState<Program[]>([])
@@ -51,6 +51,7 @@ export default function Home() {
 
     const handleProgramSelect = (program: Program) => {
         setSelectedProgram(program)
+        setView('overview')
     }
 
     const handleProgramDelete = (programId: string) => {
@@ -65,7 +66,7 @@ export default function Home() {
 
     if (loading) {
         return (
-            <div className="loading" style={{ height: '100vh' }}>
+            <div className="loading loading-fullscreen">
                 <div className="spinner"></div>
             </div>
         )
@@ -92,7 +93,9 @@ export default function Home() {
 
         switch (view) {
             case 'study':
-                return <StudyInterface program={selectedProgram} onUpdate={loadPrograms} />
+                return <StudyInterface program={selectedProgram} onUpdate={loadPrograms} initialView="chat" />
+            case 'flashcards':
+                return <StudyInterface program={selectedProgram} onUpdate={loadPrograms} initialView="flashcards" />
             case 'documents':
                 return (
                     <DocumentManager

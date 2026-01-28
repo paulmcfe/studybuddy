@@ -24,11 +24,14 @@ interface Card {
     topic: string
     question: string
     answer: string
+    interval: number
+    repetitions: number
 }
 
 interface StudyInterfaceProps {
     program: Program
     onUpdate?: () => void
+    initialView?: 'chat' | 'flashcards'
 }
 
 // Convert LaTeX delimiters from \( \) and \[ \] to $ and $$
@@ -40,8 +43,8 @@ function convertLatexDelimiters(text: string): string {
         .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$')
 }
 
-export default function StudyInterface({ program, onUpdate }: StudyInterfaceProps) {
-    const [view, setView] = useState<'chat' | 'flashcards'>('chat')
+export default function StudyInterface({ program, onUpdate, initialView = 'chat' }: StudyInterfaceProps) {
+    const [view, setView] = useState<'chat' | 'flashcards'>(initialView)
     const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const [isConnected, setIsConnected] = useState(false)
@@ -50,7 +53,7 @@ export default function StudyInterface({ program, onUpdate }: StudyInterfaceProp
     const [currentCardIndex, setCurrentCardIndex] = useState(0)
     const [isGenerating, setIsGenerating] = useState(false)
     const [totalCards, setTotalCards] = useState(0)
-    const [lastGeneratedCard, setLastGeneratedCard] = useState<Card | null>(null)
+    const [reviewFeedback, setReviewFeedback] = useState<string | null>(null)
     const wsRef = useRef<WebSocket | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -68,14 +71,22 @@ export default function StudyInterface({ program, onUpdate }: StudyInterfaceProp
     // Poll for new cards while background generation might be in progress
     useEffect(() => {
         // Only poll if we have few cards (background generation likely in progress)
-        if (totalCards >= 6) return
+        // Don't poll while actively generating a card to avoid race conditions
+        if (totalCards >= 6 || isGenerating) return
 
         const pollInterval = setInterval(() => {
             loadDueCards()
         }, 3000) // Check every 3 seconds
 
         return () => clearInterval(pollInterval)
-    }, [program.id, totalCards])
+    }, [program.id, totalCards, isGenerating])
+
+    // Generate batch of cards when down to 1, so user sees progress (6 → 5 → 4 → ... → 1)
+    useEffect(() => {
+        if (dueCards.length === 1 && !isGenerating && view === 'flashcards') {
+            generateFlashcards(5)
+        }
+    }, [dueCards.length, isGenerating, view])
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -134,28 +145,44 @@ export default function StudyInterface({ program, onUpdate }: StudyInterfaceProp
         }
     }
 
-    const generateFlashcard = async () => {
+    const generateFlashcards = async (count: number = 1) => {
+        if (isGenerating) return // Prevent double generation
         setIsGenerating(true)
-        setLastGeneratedCard(null)
         try {
-            const response = await fetch(`/api/programs/${program.id}/flashcards/generate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({}),
-            })
+            // Generate multiple cards in parallel
+            const promises = Array.from({ length: count }, () =>
+                fetch(`/api/programs/${program.id}/flashcards/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({}),
+                })
+            )
 
-            if (response.ok) {
-                const card = await response.json()
-                setLastGeneratedCard(card)
-                await loadDueCards()
+            const responses = await Promise.all(promises)
+            const newCards: Card[] = []
+
+            for (const response of responses) {
+                if (response.ok) {
+                    const card = await response.json()
+                    newCards.push(card)
+                }
+            }
+
+            if (newCards.length > 0) {
+                // Add new cards to end of queue
+                setDueCards(prev => {
+                    const existingIds = new Set(prev.map(c => c.id))
+                    const uniqueNewCards = newCards.filter(c => !existingIds.has(c.id))
+                    return [...prev, ...uniqueNewCards]
+                })
+                setTotalCards(prev => prev + newCards.length)
                 onUpdate?.()
-            } else {
-                const error = await response.json()
-                console.error('Failed to generate flashcard:', error)
-                alert(error.detail || 'Failed to generate flashcard')
+            } else if (count === 1) {
+                // Only show error for single card generation (user-initiated)
+                alert('Failed to generate flashcard')
             }
         } catch (error) {
-            console.error('Failed to generate flashcard:', error)
+            console.error('Failed to generate flashcards:', error)
         } finally {
             setIsGenerating(false)
         }
@@ -184,23 +211,53 @@ export default function StudyInterface({ program, onUpdate }: StudyInterfaceProp
         }
     }
 
+    const formatInterval = (days: number): string => {
+        if (days <= 1) return 'tomorrow'
+        if (days < 7) return `in ${days} days`
+        if (days < 14) return 'in about a week'
+        if (days < 30) return `in ${Math.round(days / 7)} weeks`
+        if (days < 60) return 'in about a month'
+        return `in ${Math.round(days / 30)} months`
+    }
+
     const handleReview = async (quality: number) => {
         const card = dueCards[currentCardIndex]
         if (!card) return
 
         try {
-            await fetch(`/api/programs/${program.id}/flashcards/${card.id}/review`, {
+            const response = await fetch(`/api/programs/${program.id}/flashcards/${card.id}/review`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ quality }),
             })
 
-            if (currentCardIndex < dueCards.length - 1) {
-                setCurrentCardIndex(currentCardIndex + 1)
+            const result = await response.json()
+            let feedback: string
+            if (quality === 5) {
+                feedback = `Got it! You'll see this again ${formatInterval(result.interval)}`
+            } else if (quality === 3) {
+                feedback = `Keep at it! You'll see this again ${formatInterval(result.interval)}`
             } else {
-                setCurrentCardIndex(0)
-                await generateFlashcard()
+                feedback = `No problem! You'll see this again ${formatInterval(result.interval)}`
             }
+            setReviewFeedback(feedback)
+
+            // Clear feedback after 2 seconds
+            setTimeout(() => setReviewFeedback(null), 2000)
+
+            // Remove the reviewed card from local state immediately
+            const remainingCards = dueCards.filter((_, i) => i !== currentCardIndex)
+            setDueCards(remainingCards)
+
+            if (remainingCards.length === 0) {
+                // No more due cards - generate a new batch
+                setCurrentCardIndex(0)
+                await generateFlashcards(5)
+            } else if (currentCardIndex >= remainingCards.length) {
+                // Was at end, wrap to beginning
+                setCurrentCardIndex(0)
+            }
+            // Otherwise index stays same, now pointing to next card
         } catch (error) {
             console.error('Failed to record review:', error)
         }
@@ -208,20 +265,20 @@ export default function StudyInterface({ program, onUpdate }: StudyInterfaceProp
 
     return (
         <div>
-            <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
+            <div className="section-header">
                 <h2>Study: {program.name}</h2>
-                <div className="tabs" style={{ border: 'none', marginBottom: 0 }}>
-                    <button
-                        className={`tab ${view === 'chat' ? 'active' : ''}`}
-                        onClick={() => setView('chat')}
-                    >
-                        Chat
-                    </button>
+                <div className="tabs tabs-inline">
                     <button
                         className={`tab ${view === 'flashcards' ? 'active' : ''}`}
                         onClick={() => setView('flashcards')}
                     >
                         Flashcards ({dueCards.length})
+                    </button>
+                    <button
+                        className={`tab ${view === 'chat' ? 'active' : ''}`}
+                        onClick={() => setView('chat')}
+                    >
+                        Chat
                     </button>
                 </div>
             </div>
@@ -232,7 +289,7 @@ export default function StudyInterface({ program, onUpdate }: StudyInterfaceProp
                         {messages.length === 0 && (
                             <div className="empty-state">
                                 <p>Ask questions about {program.name}!</p>
-                                <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                                <p className="text-sm mt-sm">
                                     {program.document_count && program.document_count > 0
                                         ? 'The tutor will use your uploaded documents to answer.'
                                         : 'The tutor will use its general knowledge to help you learn.'}
@@ -255,7 +312,7 @@ export default function StudyInterface({ program, onUpdate }: StudyInterfaceProp
                         ))}
                         {isLoading && (
                             <div className="chat-message assistant">
-                                <div className="spinner" style={{ width: 20, height: 20 }}></div>
+                                <div className="spinner spinner-sm"></div>
                             </div>
                         )}
                         <div ref={messagesEndRef} />
@@ -287,45 +344,25 @@ export default function StudyInterface({ program, onUpdate }: StudyInterfaceProp
 
             {view === 'flashcards' && (
                 <div>
-                    <div className="card" style={{ marginBottom: '1.5rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div className="card mb-lg">
+                        <div className="card-header">
                             <div>
-                                <h3 style={{ margin: 0 }}>Flashcards</h3>
-                                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 0' }}>
+                                <h3 className="card-title">Flashcards</h3>
+                                <p className="card-subtitle">
                                     {totalCards} cards total · {dueCards.length} due for review
                                 </p>
                             </div>
-                            <button
-                                className="btn-primary"
-                                onClick={generateFlashcard}
-                                disabled={isGenerating}
-                            >
-                                {isGenerating ? 'Generating...' : 'Generate New Card'}
-                            </button>
-                        </div>
-
-                        {lastGeneratedCard && (
-                            <div style={{
-                                padding: '1rem',
-                                background: 'var(--success-bg, #e8f5e9)',
-                                borderRadius: '8px',
-                                border: '1px solid var(--success-border, #c8e6c9)',
-                            }}>
-                                <p style={{ margin: '0 0 0.5rem 0', fontWeight: 500, color: 'var(--success-text, #2e7d32)' }}>
-                                    Card generated for: {lastGeneratedCard.topic}
-                                </p>
-                                <p style={{ margin: 0, fontSize: '0.875rem' }}>
-                                    <strong>Q:</strong> {lastGeneratedCard.question}
-                                </p>
+                            <div className={`review-feedback${reviewFeedback ? '' : ' hidden'}`}>
+                                {reviewFeedback || '\u00A0'}
                             </div>
-                        )}
+                        </div>
                     </div>
 
                     {dueCards.length === 0 ? (
                         <div className="card empty-state">
                             <div className="empty-state-icon">✓</div>
                             <h3>No cards due for review</h3>
-                            <p style={{ marginTop: '0.5rem' }}>
+                            <p className="mt-sm">
                                 {totalCards === 0
                                     ? 'Click "Generate New Card" to create your first flashcard!'
                                     : 'All caught up! Generate more cards or check back later.'}
@@ -333,9 +370,9 @@ export default function StudyInterface({ program, onUpdate }: StudyInterfaceProp
                         </div>
                     ) : (
                         <>
-                            <h3 style={{ marginBottom: '1rem' }}>Review Due Cards</h3>
-                            <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                                Card {currentCardIndex + 1} of {dueCards.length}
+                            <h3 className="mb-md">Review Due Cards</h3>
+                            <div className="card-counter">
+                                {dueCards.length} {dueCards.length === 1 ? 'card' : 'cards'} left to review
                             </div>
                             <Flashcard
                                 card={dueCards[currentCardIndex]}

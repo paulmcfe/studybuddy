@@ -21,10 +21,17 @@ interface DocumentManagerProps {
     onUpdate: () => void
 }
 
+interface UploadProgress {
+    current: number
+    total: number
+    filename: string
+}
+
 export default function DocumentManager({ program, onUpdate }: DocumentManagerProps) {
     const [documents, setDocuments] = useState<Document[]>([])
     const [loading, setLoading] = useState(true)
     const [uploading, setUploading] = useState(false)
+    const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
     const [dragover, setDragover] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -45,11 +52,33 @@ export default function DocumentManager({ program, onUpdate }: DocumentManagerPr
     }
 
     const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+    const PROXY_SIZE_LIMIT = 10 * 1024 * 1024 // 10MB - Next.js proxy limit
+
+    // Get upload URL - use direct backend for large files to bypass Next.js proxy limit
+    const getUploadUrl = (fileSize: number) => {
+        const isLargeFile = fileSize > PROXY_SIZE_LIMIT
+        const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+
+        if (isLargeFile && isDev) {
+            return `http://127.0.0.1:8000/api/programs/${program.id}/documents`
+        }
+        return `/api/programs/${program.id}/documents`
+    }
 
     const handleUpload = async (files: File[]) => {
         setUploading(true)
+        const totalFiles = files.length
 
-        for (const file of files) {
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i]
+
+            // Update progress
+            setUploadProgress({
+                current: i + 1,
+                total: totalFiles,
+                filename: file.name,
+            })
+
             // Check file size before uploading
             if (file.size > MAX_FILE_SIZE) {
                 alert(`${file.name} is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum file size is 50MB.`)
@@ -60,7 +89,8 @@ export default function DocumentManager({ program, onUpdate }: DocumentManagerPr
             formData.append('file', file)
 
             try {
-                const response = await fetch(`/api/programs/${program.id}/documents`, {
+                const uploadUrl = getUploadUrl(file.size)
+                const response = await fetch(uploadUrl, {
                     method: 'POST',
                     body: formData,
                 })
@@ -76,6 +106,7 @@ export default function DocumentManager({ program, onUpdate }: DocumentManagerPr
         }
 
         setUploading(false)
+        setUploadProgress(null)
         loadDocuments()
         onUpdate()
     }
@@ -142,7 +173,7 @@ export default function DocumentManager({ program, onUpdate }: DocumentManagerPr
 
     return (
         <div>
-            <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
+            <div className="section-header">
                 <h2>Documents: {program.name}</h2>
             </div>
 
@@ -152,7 +183,6 @@ export default function DocumentManager({ program, onUpdate }: DocumentManagerPr
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onClick={() => fileInputRef.current?.click()}
-                style={{ marginBottom: '1.5rem' }}
             >
                 <input
                     ref={fileInputRef}
@@ -160,17 +190,24 @@ export default function DocumentManager({ program, onUpdate }: DocumentManagerPr
                     multiple
                     accept=".pdf,.md,.markdown,.txt"
                     onChange={handleFileSelect}
-                    style={{ display: 'none' }}
+                    className="hidden"
+                    title="Upload documents"
                 />
-                {uploading ? (
-                    <div className="loading">
+                {uploading && uploadProgress ? (
+                    <div className="text-center">
                         <div className="spinner"></div>
+                        <p className="font-medium">
+                            Uploading {uploadProgress.current} of {uploadProgress.total}
+                        </p>
+                        <p className="upload-progress-filename">
+                            {uploadProgress.filename}
+                        </p>
                     </div>
                 ) : (
                     <>
-                        <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📁</div>
+                        <div className="upload-icon">📁</div>
                         <p>Drop files here or click to upload</p>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
+                        <p className="upload-hint">
                             Supports PDF, Markdown, and plain text files (max 50MB)
                         </p>
                     </>
@@ -181,7 +218,7 @@ export default function DocumentManager({ program, onUpdate }: DocumentManagerPr
                 <div className="card empty-state">
                     <div className="empty-state-icon">📚</div>
                     <h3>No Documents Yet</h3>
-                    <p style={{ marginTop: '0.5rem' }}>
+                    <p className="mt-sm">
                         Upload PDF, Markdown, or text files to build your knowledge base.
                     </p>
                 </div>
@@ -207,9 +244,8 @@ export default function DocumentManager({ program, onUpdate }: DocumentManagerPr
                                     {doc.status === 'failed' && '❌ Failed'}
                                 </span>
                                 <button
-                                    className="btn-secondary"
+                                    className="btn-secondary btn-sm"
                                     onClick={() => handleDelete(doc.id)}
-                                    style={{ padding: '0.25rem 0.5rem' }}
                                 >
                                     Delete
                                 </button>
@@ -220,15 +256,8 @@ export default function DocumentManager({ program, onUpdate }: DocumentManagerPr
             )}
 
             {documents.some((d) => d.status === 'failed') && (
-                <div
-                    className="card"
-                    style={{
-                        marginTop: '1rem',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        borderColor: 'var(--color-error)',
-                    }}
-                >
-                    <p style={{ color: 'var(--color-error)' }}>
+                <div className="card card-error">
+                    <p className="text-error">
                         Some documents failed to index. Try re-uploading them or check the file format.
                     </p>
                 </div>

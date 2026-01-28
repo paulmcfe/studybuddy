@@ -21,8 +21,8 @@ DATABASE_URL = POSTGRES_URL.replace("postgres://", "postgresql://", 1)
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10,
+    pool_size=10,
+    max_overflow=20,
 )
 print(f"Using PostgreSQL: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else 'localhost'}")
 

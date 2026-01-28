@@ -78,12 +78,12 @@ export default function CreateProgram({ onCreated, onCancel }: CreateProgramProp
     }
 
     return (
-        <div style={{ maxWidth: 600, margin: '0 auto' }}>
-            <h2 style={{ marginBottom: '1.5rem' }}>Create Learning Program</h2>
+        <div className="create-program-container">
+            <h2 className="create-program-title">Create Learning Program</h2>
 
             <form onSubmit={handleCreate}>
-                <div className="card" style={{ marginBottom: '1.5rem' }}>
-                    <div style={{ marginBottom: '1rem' }}>
+                <div className="card form-section">
+                    <div className="form-field">
                         <label htmlFor="name">Program Name *</label>
                         <input
                             id="name"
@@ -108,17 +108,10 @@ export default function CreateProgram({ onCreated, onCancel }: CreateProgramProp
                     </div>
                 </div>
 
-                <div
-                    className="card"
-                    style={{
-                        marginBottom: '1.5rem',
-                        opacity: canSelectCurriculum ? 1 : 0.5,
-                        pointerEvents: canSelectCurriculum ? 'auto' : 'none',
-                    }}
-                >
-                    <h3 style={{ marginBottom: '1rem' }}>Curriculum</h3>
+                <div className={`card form-section ${canSelectCurriculum ? '' : 'card-disabled'}`}>
+                    <h3 className="section-title">Curriculum</h3>
 
-                    <div className="tabs" style={{ marginBottom: '1rem' }}>
+                    <div className="tabs mb-md">
                         <button
                             type="button"
                             className={`tab ${createMode === 'manual' ? 'active' : ''}`}
@@ -138,14 +131,14 @@ export default function CreateProgram({ onCreated, onCancel }: CreateProgramProp
                     </div>
 
                     {createMode === 'manual' && (
-                        <p style={{ color: 'var(--color-text-secondary)' }}>
+                        <p className="text-secondary">
                             Upload your own documents and the AI tutor will use them directly.
-                            You can generate a topic list later if needed.
+                            Later, from the program overview, you can generate a curriculum based on your program description.
                         </p>
                     )}
 
                     {createMode === 'generate' && (
-                        <p style={{ color: 'var(--color-text-secondary)' }}>
+                        <p className="text-secondary">
                             AI will generate a structured curriculum based on your description above.
                         </p>
                     )}

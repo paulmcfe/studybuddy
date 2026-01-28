@@ -24,7 +24,22 @@ interface Stats {
     }
 }
 
-type View = 'overview' | 'study' | 'documents' | 'new-program'
+interface Topic {
+    title: string
+    subtopics: string[]
+}
+
+interface Chapter {
+    number: number
+    title: string
+    topics: Topic[]
+}
+
+interface TopicList {
+    chapters: Chapter[]
+}
+
+type View = 'overview' | 'study' | 'flashcards' | 'documents' | 'new-program'
 
 interface DashboardProps {
     program: Program
@@ -40,12 +55,16 @@ export default function Dashboard({
     onNavigate,
 }: DashboardProps) {
     const [stats, setStats] = useState<Stats | null>(null)
+    const [curriculum, setCurriculum] = useState<TopicList | null>(null)
+    const [showCurriculum, setShowCurriculum] = useState(false)
     const [loading, setLoading] = useState(true)
     const [isDeleting, setIsDeleting] = useState(false)
+    const [isGeneratingCurriculum, setIsGeneratingCurriculum] = useState(false)
 
     useEffect(() => {
         if (program?.id) {
             loadStats()
+            loadCurriculum()
         }
     }, [program?.id])
 
@@ -53,8 +72,9 @@ export default function Dashboard({
     useEffect(() => {
         if ((stats?.flashcards?.total ?? 0) >= 6) return
 
-        const pollInterval = setInterval(() => {
-            loadStats()
+        const pollInterval = setInterval(async () => {
+            await loadStats()
+            onProgramUpdate() // Refresh sidebar counts
         }, 3000) // Check every 3 seconds
 
         return () => clearInterval(pollInterval)
@@ -69,6 +89,16 @@ export default function Dashboard({
             console.error('Failed to load stats:', error)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const loadCurriculum = async () => {
+        try {
+            const response = await fetch(`/api/programs/${program.id}`)
+            const data = await response.json()
+            setCurriculum(data.topic_list || null)
+        } catch (error) {
+            console.error('Failed to load curriculum:', error)
         }
     }
 
@@ -96,6 +126,43 @@ export default function Dashboard({
         }
     }
 
+    const handleGenerateCurriculum = async () => {
+        if (!program.description) {
+            alert('Program needs a description to generate a curriculum.')
+            return
+        }
+
+        setIsGeneratingCurriculum(true)
+        try {
+            const response = await fetch(
+                `/api/programs/${program.id}/generate-curriculum`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        topic: program.description,
+                        depth: 'intermediate',
+                        chapter_count: 8,
+                    }),
+                }
+            )
+
+            if (response.ok) {
+                await loadCurriculum()
+                await loadStats()
+                onProgramUpdate()
+            } else {
+                const error = await response.json()
+                alert(error.detail || 'Failed to generate curriculum')
+            }
+        } catch (error) {
+            console.error('Failed to generate curriculum:', error)
+            alert('Failed to generate curriculum')
+        } finally {
+            setIsGeneratingCurriculum(false)
+        }
+    }
+
     if (loading) {
         return (
             <div className="loading">
@@ -106,48 +173,48 @@ export default function Dashboard({
 
     return (
         <div>
-            <div className="flex justify-between items-center" style={{ marginBottom: '2rem' }}>
-                <div>
+            <div className="page-header">
+                <div className="page-header-content">
                     <h2>{program.name}</h2>
                     {program.description && (
-                        <p style={{ color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
-                            {program.description}
-                        </p>
+                        <p className="page-description">{program.description}</p>
                     )}
                 </div>
-                <div className="flex gap-sm">
-                    <button onClick={() => onNavigate('study')} className="btn-primary">
+                <div className="page-header-actions flex gap-sm">
+                    <button onClick={() => onNavigate('flashcards')} className="btn-primary">
                         Start Studying
                     </button>
                 </div>
             </div>
 
-            <div className="stats-grid">
-                <div className="stat-card">
-                    <div className="stat-value">{stats?.documents?.indexed || 0}</div>
-                    <div className="stat-label">Documents Indexed</div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-value">{stats?.flashcards?.total || 0}</div>
-                    <div className="stat-label">Flashcards</div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-value">{stats?.flashcards?.due || 0}</div>
-                    <div className="stat-label">Due for Review</div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-value">{stats?.flashcards?.mastered || 0}</div>
-                    <div className="stat-label">Mastered</div>
+            <div className="card mb-lg">
+                <h3 className="mb-md">Flashcard Progress</h3>
+                <div className="stats-grid">
+                    <div className="stat-card">
+                        <div className="stat-value">{stats?.flashcards?.due || 0}</div>
+                        <div className="stat-label">Ready to Review</div>
+                        <div className="stat-sublabel">Cards to study now</div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-value">{stats?.flashcards?.learning || 0}</div>
+                        <div className="stat-label">Still Learning</div>
+                        <div className="stat-sublabel">Building memory</div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-value">{stats?.flashcards?.mastered || 0}</div>
+                        <div className="stat-label">Mastered</div>
+                        <div className="stat-sublabel">In long-term memory</div>
+                    </div>
                 </div>
             </div>
 
-            <div className="card" style={{ marginBottom: '1.5rem' }}>
-                <h3 style={{ marginBottom: '1rem' }}>Quick Actions</h3>
+            <div className="card mb-lg">
+                <h3 className="mb-md">Quick Actions</h3>
                 <div className="flex gap-md">
                     <button onClick={() => onNavigate('documents')} className="btn-secondary">
                         Upload Documents
                     </button>
-                    <button onClick={() => onNavigate('study')} className="btn-secondary">
+                    <button onClick={() => onNavigate('flashcards')} className="btn-secondary">
                         Review Flashcards
                     </button>
                     <button onClick={() => onNavigate('study')} className="btn-secondary">
@@ -164,13 +231,7 @@ export default function Dashboard({
             </div>
 
             {stats?.documents?.pending != null && stats.documents.pending > 0 && (
-                <div
-                    className="card"
-                    style={{
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        borderColor: 'var(--color-warning)',
-                    }}
-                >
+                <div className="card card-warning">
                     <p>
                         <strong>{stats.documents.pending}</strong> document(s) are still being indexed.
                         They&apos;ll be available for studying soon.
@@ -182,7 +243,7 @@ export default function Dashboard({
                 <div className="card empty-state">
                     <div className="empty-state-icon">📚</div>
                     <h3>No Documents Yet</h3>
-                    <p style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
+                    <p className="mt-sm mb-md">
                         Upload some documents to start building your knowledge base.
                     </p>
                     <button onClick={() => onNavigate('documents')} className="btn-primary">
@@ -191,12 +252,66 @@ export default function Dashboard({
                 </div>
             )}
 
-            {stats?.topics?.total && stats.topics.total > 0 && (
-                <div className="card" style={{ marginTop: '1.5rem' }}>
-                    <h3 style={{ marginBottom: '1rem' }}>Topic List</h3>
-                    <p style={{ color: 'var(--color-text-secondary)' }}>
-                        {stats.topics.total} topics in your curriculum
-                    </p>
+            {(stats?.topics?.total ?? 0) > 0 && curriculum ? (
+                <div className="card mt-lg">
+                    <div
+                        className="curriculum-toggle"
+                        onClick={() => setShowCurriculum(!showCurriculum)}
+                    >
+                        <h3 className="card-title">
+                            Curriculum ({stats.topics.total} topics)
+                        </h3>
+                        <span className="curriculum-arrow">
+                            {showCurriculum ? '▼' : '▶'}
+                        </span>
+                    </div>
+
+                    {showCurriculum && (
+                        <div className="curriculum-content">
+                            {curriculum.chapters?.map((chapter, i) => (
+                                <div key={i} className="curriculum-chapter">
+                                    <h4 className="curriculum-chapter-title">
+                                        {chapter.title}
+                                    </h4>
+                                    <ul className="curriculum-topics">
+                                        {chapter.topics?.map((topic, j) => (
+                                            <li key={j} className="curriculum-topic">
+                                                • {topic.title}
+                                                {topic.subtopics?.length > 0 && (
+                                                    <ul className="curriculum-subtopics">
+                                                        {topic.subtopics.map((sub, k) => (
+                                                            <li key={k} className="curriculum-subtopic">
+                                                                ◦ {sub}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            ) : program.description && (
+                <div className="card mt-lg">
+                    <div className="card-header">
+                        <div>
+                            <h3 className="card-title">Curriculum</h3>
+                            <p className="card-subtitle">
+                                No curriculum yet. Generate one based on your program description.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            className="btn-primary"
+                            onClick={handleGenerateCurriculum}
+                            disabled={isGeneratingCurriculum}
+                        >
+                            {isGeneratingCurriculum ? 'Generating...' : 'Generate Curriculum'}
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
