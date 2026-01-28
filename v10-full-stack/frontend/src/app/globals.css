@@ -284,6 +284,7 @@ label {
 .flex {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .flex-col {
@@ -1215,6 +1216,10 @@ label {
 
   .main-content {
     text-align: left;
+  }
+
+  .flex {
+    justify-content: flex-start;
   }
 
   .stats-grid {
