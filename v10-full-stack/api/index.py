@@ -1092,9 +1092,11 @@ If the context doesn't contain relevant information, say so honestly."""
 
     async def generate():
         """Stream the response chunks."""
+        import json
         async for chunk in llm.astream(messages):
             if chunk.content:
-                yield f"data: {chunk.content}\n\n"
+                # JSON-encode to preserve newlines in SSE format
+                yield f"data: {json.dumps(chunk.content)}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(

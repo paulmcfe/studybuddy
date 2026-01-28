@@ -196,7 +196,12 @@ export default function StudyInterface({ program, onUpdate, initialView = 'chat'
                         if (data === '[DONE]') {
                             break
                         }
-                        assistantMessage += data
+                        // Parse JSON to restore newlines
+                        try {
+                            assistantMessage += JSON.parse(data)
+                        } catch {
+                            assistantMessage += data
+                        }
                         // Update the last message with accumulated content
                         setMessages((prev) => {
                             const newMessages = [...prev]
