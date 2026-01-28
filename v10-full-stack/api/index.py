@@ -4,7 +4,7 @@ FastAPI application with:
 - Learning program CRUD
 - Document upload and indexing
 - Flashcard generation and spaced repetition
-- WebSocket streaming for chat
+- HTTP streaming for chat
 - Curriculum generation
 """
 
@@ -21,8 +21,6 @@ from fastapi import (
     UploadFile,
     File,
     BackgroundTasks,
-    WebSocket,
-    WebSocketDisconnect,
     Query,
 )
 from fastapi.middleware.cors import CORSMiddleware
@@ -1107,137 +1105,6 @@ If the context doesn't contain relevant information, say so honestly."""
             "Connection": "keep-alive",
         },
     )
-
-
-# ============== WebSocket Endpoints (for local development) ==============
-
-
-@app.websocket("/ws/study/{program_id}")
-async def study_websocket(
-    websocket: WebSocket,
-    program_id: str,
-):
-    """WebSocket endpoint for real-time study interactions."""
-    from langchain_openai import ChatOpenAI
-    from langgraph.graph import StateGraph, END
-
-    await websocket.accept()
-
-    # Get program
-    from .database.connection import SessionLocal
-    db = SessionLocal()
-
-    try:
-        user_id = get_current_user_id()
-        program = db.query(LearningProgram).filter(
-            LearningProgram.id == program_id,
-            LearningProgram.user_id == user_id,
-        ).first()
-
-        if not program:
-            await websocket.send_json({"type": "error", "message": "Program not found"})
-            await websocket.close()
-            return
-
-        # Initialize retriever
-        retriever = get_program_retriever(program)
-
-        # Create tutor agent
-        llm = ChatOpenAI(model="gpt-4o", streaming=True)
-
-        async def retrieve_context(state):
-            """Retrieve relevant documents for the question."""
-            last_message = state["messages"][-1]
-            docs = retriever.search(last_message["content"], k=3)
-            context = "\n\n".join(doc.page_content for doc in docs)
-            return {"context": context}
-
-        async def generate_response(state):
-            """Generate a response using retrieved context."""
-            context = state.get("context", "")
-            messages = state["messages"]
-
-            system_prompt = f"""You are a helpful tutor for the learning program: {program.name}
-
-Use the following context to answer questions accurately and helpfully:
-
-{context}
-
-If the context doesn't contain relevant information, say so honestly."""
-
-            # Build message list
-            chat_messages = [("system", system_prompt)]
-            for msg in messages:
-                chat_messages.append((msg["role"], msg["content"]))
-
-            response = await llm.ainvoke(chat_messages)
-            return {"response": response.content}
-
-        # Handle messages
-        conversation_history = []
-
-        while True:
-            data = await websocket.receive_json()
-
-            if data["type"] == "chat":
-                message = data["message"]
-                conversation_history.append({"role": "user", "content": message})
-
-                # Retrieve context
-                await websocket.send_json({"type": "status", "message": "Retrieving context..."})
-
-                state = {"messages": conversation_history}
-                state = await retrieve_context(state)
-
-                # Generate response
-                await websocket.send_json({"type": "status", "message": "Generating response..."})
-
-                state["messages"] = conversation_history
-                result = await generate_response(state)
-
-                # Send response
-                conversation_history.append({"role": "assistant", "content": result["response"]})
-
-                await websocket.send_json({
-                    "type": "response",
-                    "content": result["response"],
-                })
-
-            elif data["type"] == "generate_card":
-                topic = data.get("topic", "")
-
-                await websocket.send_json({"type": "status", "message": "Generating flashcard..."})
-
-                # Retrieve context
-                docs = retriever.search(topic, k=3)
-                if docs:
-                    context = "\n\n".join(doc.page_content for doc in docs)
-                    card = await generate_flashcard(topic, context, program_id, db)
-
-                    if card:
-                        await websocket.send_json({
-                            "type": "flashcard",
-                            "card": {
-                                "id": card.id,
-                                "question": card.question,
-                                "answer": card.answer,
-                            },
-                        })
-                    else:
-                        await websocket.send_json({
-                            "type": "error",
-                            "message": "Failed to generate flashcard",
-                        })
-                else:
-                    await websocket.send_json({
-                        "type": "error",
-                        "message": "No relevant content found",
-                    })
-
-    except WebSocketDisconnect:
-        pass
-    finally:
-        db.close()
 
 
 # ============== Health Check ==============
