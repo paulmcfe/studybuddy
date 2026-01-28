@@ -36,7 +36,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from api.database import (
+from .database import (
     init_database,
     get_db_dependency,
     get_or_create_user,
@@ -47,24 +47,24 @@ from api.database import (
     Message,
     ProgramStats,
 )
-from api.services.retrieval import (
+from .services.retrieval import (
     get_program_retriever,
     get_program_vector_store,
     ensure_collection_exists,
 )
-from api.services.indexing import (
+from .services.indexing import (
     load_document,
     chunk_documents,
     index_document_to_program,
 )
-from api.services.curriculum import (
+from .services.curriculum import (
     generate_curriculum,
     generate_curriculum_from_documents,
     parse_topic_list,
     topic_list_to_markdown,
     count_topics,
 )
-from api.services.flashcard import (
+from .services.flashcard import (
     generate_flashcard,
     get_due_flashcards,
     update_flashcard_sm2,
@@ -324,7 +324,7 @@ async def delete_program(
 
 async def generate_initial_flashcards(program_id: str, num_cards: int = 6):
     """Background task to generate initial flashcards for a new program."""
-    from api.database.connection import SessionLocal
+    from .database.connection import SessionLocal
 
     db = SessionLocal()
     try:
@@ -422,7 +422,7 @@ async def generate_program_curriculum(
     background_tasks: BackgroundTasks,
 ):
     """Generate a curriculum for a program using AI."""
-    from api.database.connection import SessionLocal
+    from .database.connection import SessionLocal
 
     # Step 1: Validate program exists (quick DB check, then release connection)
     db = SessionLocal()
@@ -581,7 +581,7 @@ async def upload_document(
 
 async def index_document_background(document_id: str, program_id: str):
     """Background task to index a document."""
-    from api.database.connection import SessionLocal
+    from .database.connection import SessionLocal
 
     db = SessionLocal()
     try:
@@ -626,7 +626,7 @@ async def index_document_background(document_id: str, program_id: str):
 
 async def generate_curriculum_from_indexed_documents(program_id: str):
     """Generate a curriculum based on indexed document content."""
-    from api.database.connection import SessionLocal
+    from .database.connection import SessionLocal
 
     db = SessionLocal()
     try:
@@ -717,7 +717,7 @@ async def delete_document(
         raise HTTPException(status_code=404, detail="Document not found")
 
     # Delete from Qdrant
-    from api.services.indexing import delete_document_from_program
+    from .services.indexing import delete_document_from_program
     await delete_document_from_program(document, program)
 
     # Delete file
@@ -1053,7 +1053,7 @@ async def study_websocket(
     await websocket.accept()
 
     # Get program
-    from api.database.connection import SessionLocal
+    from .database.connection import SessionLocal
     db = SessionLocal()
 
     try:

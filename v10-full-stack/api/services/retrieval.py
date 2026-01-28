@@ -13,7 +13,7 @@ from langchain_core.documents import Document
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
 
-from api.database.models import LearningProgram
+from ..database.models import LearningProgram
 
 # Lazy import for optional dependencies
 _bm25_module = None

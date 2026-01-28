@@ -15,8 +15,8 @@ from langchain_text_splitters import (
 )
 from langchain_openai import OpenAIEmbeddings
 
-from api.database.models import Document, LearningProgram
-from api.services.retrieval import (
+from ..database.models import Document, LearningProgram
+from .retrieval import (
     get_program_vector_store,
     ensure_collection_exists,
     EMBEDDING_MODEL,

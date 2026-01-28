@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
-from api.database.models import Flashcard, LearningProgram
+from ..database.models import Flashcard, LearningProgram
 
 
 FLASHCARD_PROMPT = ChatPromptTemplate.from_template("""You are an expert educator creating flashcards following the minimum information principle.
