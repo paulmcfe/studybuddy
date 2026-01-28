@@ -19,6 +19,7 @@ interface Stats {
         total: number
         due: number
         mastered: number
+        learning: number
     }
     topics: {
         total: number
