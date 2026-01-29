@@ -171,3 +171,4 @@ cython_debug/
 #.idea/
 .vercel
 .DS_Store
+.env*.local

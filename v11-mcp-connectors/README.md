@@ -1,15 +1,27 @@
-# StudyBuddy v10 - Full Stack Application
+# StudyBuddy v11 - MCP Connectors
 
-A full-stack learning application that lets you study any subject with AI-powered tutoring, flashcards, and spaced repetition.
+A full-stack learning application with AI-powered tutoring, flashcards, and spaced repetition. Version 11 adds MCP connectors for importing content from external sources and augmenting the tutor with web search.
+
+## What's New in v11
+
+- **Import from URL**: Paste a web page URL to import it as a learning document (uses the Fetch MCP server)
+- **Import from GitHub**: Connect a repository, browse its files, and selectively import markdown documentation
+- **Web Search for the Tutor**: Enable Brave Search so the tutor can search the web when your documents don't have the answer
+- **Incremental Sync**: GitHub connector tracks content hashes — re-syncing only re-imports files that changed
+- **Connector Management UI**: Dedicated Connectors page for configuring and managing all three connector types
 
 ## Features
 
+All v10 features plus MCP connectors:
+
 - **Learning Programs**: Create separate programs for different subjects, each with its own knowledge base
 - **Document Upload**: Upload PDF, Markdown, and text files to build your knowledge base
+- **MCP Connectors**: Import content from URLs, GitHub repos, and augment the tutor with web search
 - **AI Curriculum Generation**: Generate comprehensive curricula for any topic
 - **Flashcard Generation**: AI-generated flashcards from your documents
 - **Spaced Repetition**: SM-2 algorithm for optimal review scheduling
 - **Chat Interface**: Real-time streaming chat with a tutor that uses your documents
+- **Search-Augmented Tutoring**: LangGraph agent with Brave Search for web-augmented answers
 - **Progress Tracking**: Dashboard with statistics and upcoming reviews
 
 ## Prerequisites
@@ -20,12 +32,16 @@ A full-stack learning application that lets you study any subject with AI-powere
 - Qdrant (vector database)
 - OpenAI API key
 
+**Optional (for connectors):**
+- GitHub Personal Access Token (for GitHub connector)
+- Brave Search API key (for web search — free tier at https://brave.com/search/api/)
+
 ## Setup
 
 ### 1. Install Dependencies
 
 ```bash
-cd v10-full-stack
+cd v11-mcp-connectors
 
 # Install Python dependencies (using uv)
 uv sync
@@ -42,6 +58,16 @@ cd ..
 cp .env.example .env
 # Edit .env with your API keys and database URL
 ```
+
+Required variables:
+- `OPENAI_API_KEY` — OpenAI API key
+- `POSTGRES_URL` — PostgreSQL connection string
+
+Optional variables:
+- `QDRANT_URL` — Qdrant URL (defaults to `http://localhost:6333`)
+- `COHERE_API_KEY` — Cohere API key for reranking
+- `GITHUB_TOKEN` — GitHub Personal Access Token for the GitHub connector
+- `BRAVE_API_KEY` — Brave Search API key for the web search connector
 
 ### 3. Start Qdrant
 
@@ -62,7 +88,7 @@ psql -l | grep studybuddy
 createdb studybuddy
 ```
 
-Note: v10 uses the same `studybuddy` database as previous versions. New tables are created automatically on startup.
+Note: v11 uses the same `studybuddy` database as previous versions. New tables (`connector_configs`) and columns are created automatically on startup.
 
 ### 5. Start the Application
 
@@ -107,6 +133,28 @@ Upload documents to give the AI tutor context about your subject:
 5. Maximum file size: 50MB per file
 6. Documents are automatically indexed for AI retrieval
 
+### Using Connectors
+
+Go to the **Connectors** tab to import content from external sources:
+
+**Import from URL:**
+1. Click the "Import from URL" card
+2. Paste a web page URL
+3. Click **Import** — the page is fetched, converted to markdown, and indexed
+
+**Import from GitHub:**
+1. Click the "Import from GitHub" card
+2. Enter the repository (e.g., `owner/repo`), a Personal Access Token, and branch
+3. Click **Browse Files** to see available markdown files
+4. Select files and click **Import Selected**
+5. Use **Sync** later to detect and re-import changed files
+
+**Web Search (Brave Search):**
+1. Click the "Web Search" card
+2. Enter your Brave Search API key and click **Save**
+3. The tutor can now search the web when your documents don't cover a topic
+4. Web search results include source URLs for verification
+
 ### Studying with the AI Tutor
 
 The Chat interface lets you have conversations with an AI tutor that references your uploaded documents:
@@ -114,7 +162,8 @@ The Chat interface lets you have conversations with an AI tutor that references 
 1. Select a program and click **"Start Studying"**
 2. Type questions in the chat input
 3. The tutor searches your documents and provides relevant answers
-4. Use this to ask clarifying questions, get explanations, or test your understanding
+4. If Brave Search is enabled, the tutor can also search the web when needed
+5. Use this to ask clarifying questions, get explanations, or test your understanding
 
 The chat supports rich formatting including markdown (headers, lists, code blocks) and LaTeX math equations.
 
@@ -164,19 +213,39 @@ The Dashboard shows your learning statistics:
 ### Curriculum
 - `POST /api/programs/{id}/generate-curriculum` - Generate AI curriculum
 
-### WebSocket
-- `WS /ws/study/{program_id}` - Real-time chat with tutor
+### Connectors
+- `GET /api/programs/{id}/connectors` - List connectors
+- `POST /api/programs/{id}/connectors` - Create a connector
+- `GET /api/programs/{id}/connectors/{cid}` - Get connector details
+- `PATCH /api/programs/{id}/connectors/{cid}` - Update connector config
+- `DELETE /api/programs/{id}/connectors/{cid}` - Delete a connector
+
+### Connector Actions
+- `POST /api/programs/{id}/connectors/{cid}/fetch` - Import a URL
+- `GET /api/programs/{id}/connectors/{cid}/github/files` - Browse repo files
+- `POST /api/programs/{id}/connectors/{cid}/github/import` - Import GitHub files
+- `POST /api/programs/{id}/connectors/{cid}/github/sync` - Re-sync GitHub repo
+
+### Chat
+- `POST /api/programs/{id}/chat` - Chat with the tutor (uses LangGraph agent if Brave Search is configured)
 
 ## Project Structure
 
 ```
-v10-full-stack/
+v11-mcp-connectors/
 ├── api/
-│   ├── index.py              # FastAPI app
+│   ├── index.py              # FastAPI app with connector endpoints
+│   ├── agents/
+│   │   └── tutor.py          # LangGraph tutor agent with Brave Search
 │   ├── database/
-│   │   ├── models.py         # SQLAlchemy models
+│   │   ├── models.py         # SQLAlchemy models (+ ConnectorConfig)
 │   │   └── connection.py     # Database connection
 │   └── services/
+│       ├── connectors/       # MCP connector implementations
+│       │   ├── mcp_client.py       # MCP server configurations
+│       │   ├── fetch_connector.py  # URL import via Fetch MCP
+│       │   ├── github_connector.py # GitHub import via REST API
+│       │   └── brave_connector.py  # Brave Search tool provider
 │       ├── retrieval.py      # Vector search
 │       ├── indexing.py       # Document processing
 │       ├── curriculum.py     # Curriculum generation
@@ -192,11 +261,12 @@ v10-full-stack/
 │   │       ├── Dashboard.tsx
 │   │       ├── StudyInterface.tsx
 │   │       ├── DocumentManager.tsx
+│   │       ├── ConnectorManager.tsx  # Connector management UI
 │   │       ├── CreateProgram.tsx
 │   │       └── Flashcard.tsx
 │   ├── next.config.ts
 │   └── package.json
-├── uploads/                  # Uploaded documents
+├── uploads/                  # Uploaded and imported documents
 ├── pyproject.toml
 └── README.md
 ```
@@ -207,8 +277,9 @@ v10-full-stack/
 The API is built with FastAPI and uses:
 - SQLAlchemy for PostgreSQL
 - Qdrant for vector search
-- LangChain for LLM orchestration
-- WebSockets for real-time chat
+- LangChain + LangGraph for LLM orchestration and agents
+- langchain-mcp-adapters for MCP server integration
+- httpx for GitHub REST API calls
 
 ### Frontend
 The frontend is built with:
@@ -218,5 +289,4 @@ The frontend is built with:
 
 ## What's Next
 
-- Chapter 11: MCP connectors for external content import
-- Chapter 12: Production deployment with authentication
+- Chapter 12: Production deployment with authentication and multi-user support
