@@ -2,17 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "v10-full-stack/api/index.py",
+      "src": "v11-mcp-connectors/api/index.py",
       "use": "@vercel/python"
     },
     {
-      "src": "v10-full-stack/frontend/package.json",
+      "src": "v11-mcp-connectors/frontend/package.json",
       "use": "@vercel/next"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/v10-full-stack/api/index.py" },
-    { "src": "/(.*)", "dest": "/v10-full-stack/frontend/$1" }
+    { "src": "/api/(.*)", "dest": "/v11-mcp-connectors/api/index.py" },
+    { "src": "/(.*)", "dest": "/v11-mcp-connectors/frontend/$1" }
   ],
   "git": {
     "deploymentEnabled": {

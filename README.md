@@ -27,7 +27,7 @@ studybuddy/
 ├── v8-evaluation/
 ├── v9-optimized-retrieval/
 ├── v10-full-stack/
-├── v11-external-integrations/
+├── v11-mcp-connectors/
 ├── v12-production-api/
 ├── v13-open-source/
 ├── v14-production-ready/

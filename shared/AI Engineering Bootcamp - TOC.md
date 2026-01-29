@@ -745,16 +745,16 @@
 - Custom tool creation
 - Composing multiple MCP servers
 
+### Testing MCP Connectors
+- Local testing strategies
+- Integration testing
+- Mock servers for development
+
 ### Pros and Cons of Client-Side MCP
 - Benefits of standardization
 - Performance considerations
 - Security trade-offs
 - When MCP makes sense
-
-### Testing MCP Connectors
-- Local testing strategies
-- Integration testing
-- Mock servers for development
 
 ### Building StudyBuddy v11
 - **MCP client integration** with LangChain adapters for external data sources
