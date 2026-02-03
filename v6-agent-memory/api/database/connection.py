@@ -29,7 +29,6 @@ print(f"Using PostgreSQL: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL el
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-
 def init_database():
     """Create all tables if they don't exist and ensure default user exists."""
     # Create tables

@@ -912,7 +912,6 @@
 - LangSmith Deployment components
 - Creating production API endpoints
 - Configuration and secrets management
-- Cost: ~$30-40/month for deployment
 
 #### Agent Server Design
 
@@ -961,21 +960,16 @@
 
 - **User authentication**: Full JWT auth with registration, login, password reset, email verification
 - **Multi-user data isolation**: User-scoped Qdrant collections, learning programs, and progress
-- **LangSmith Deployment**: Package and deploy agents as production API endpoints (~$30-40/month)
+- **LangSmith Deployment**: Package and deploy agents as production API endpoints
 - **Production monitoring**: Metrics collection, health checks, alerting setup
 - **Rate limiting**: Per-user request limits to manage costs and prevent abuse
-- **Background job queue**: Redis-backed async processing for long-running tasks
 - Docker containerization for deployment
-- PostgreSQL mandatory (no SQLite fallback)
-- Load testing with multiple concurrent users
-- Setting up production observability with LangSmith tracing
-- Documenting the deployment process and cost analysis
 
 ---
 
 ### Chapter 13: Advanced Infrastructure
 
-#### LLM Servers (Condensed from original Chapter 16)
+#### LLM Servers
 
 - Model serving fundamentals
 - Choosing open-source models (LLM leaderboards, MTEB)
@@ -983,7 +977,7 @@
 - Inference optimization (quantization, batching, KV cache)
 - Cost considerations for self-hosting vs. APIs
 
-#### MCP Servers and Agent-to-Agent (Condensed from original Chapter 17)
+#### MCP Servers and Agent-to-Agent
 
 - Setting up your own MCP server
 - Exposing StudyBuddy's capabilities via MCP
@@ -1135,7 +1129,7 @@
 - **Cost analytics dashboard**: Token usage tracking, cost attribution by feature, budget alerts
 - **Production checklist UI**: Readiness status across security, performance, monitoring categories
 - Performance tuning (latency, throughput optimization)
-- Security hardening (authentication, authorization, input validation)
+- Security hardening (authentication, authorization, email verification, input validation)
 - Final monitoring and alerting setup
 - Load testing under production conditions
 - Documentation for operations and maintenance

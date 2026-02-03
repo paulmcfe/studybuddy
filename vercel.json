@@ -2,17 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "v11-mcp-connectors/api/index.py",
+      "src": "v12-production-api/api/index.py",
       "use": "@vercel/python"
     },
     {
-      "src": "v11-mcp-connectors/frontend/package.json",
+      "src": "v12-production-api/frontend/package.json",
       "use": "@vercel/next"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/v11-mcp-connectors/api/index.py" },
-    { "src": "/(.*)", "dest": "/v11-mcp-connectors/frontend/$1" }
+    { "src": "/api/(.*)", "dest": "/v12-production-api/api/index.py" },
+    { "src": "/(.*)", "dest": "/v12-production-api/frontend/$1" }
   ],
   "git": {
     "deploymentEnabled": {
