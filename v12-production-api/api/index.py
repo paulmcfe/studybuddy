@@ -627,6 +627,8 @@ async def generate_initial_flashcards(program_id: str, num_cards: int = 6):
                     context=context,
                     program_id=program_id,
                     db=db,
+                    program_name=program.name,
+                    program_description=program.description or "",
                 )
         else:
             # No curriculum - extract diverse chunks from documents
@@ -643,6 +645,8 @@ async def generate_initial_flashcards(program_id: str, num_cards: int = 6):
                         context=context,
                         program_id=program_id,
                         db=db,
+                        program_name=program.name,
+                        program_description=program.description or "",
                     )
             else:
                 # Use each chunk as basis for a unique flashcard
@@ -674,6 +678,8 @@ async def generate_initial_flashcards(program_id: str, num_cards: int = 6):
                         context=context,
                         program_id=program_id,
                         db=db,
+                        program_name=program.name,
+                        program_description=program.description or "",
                     )
                     cards_generated += 1
 
@@ -1212,6 +1218,8 @@ For precalculus, good topics include: trigonometric identities, unit circle valu
         context=context,
         program_id=program_id,
         db=db,
+        program_name=program.name,
+        program_description=program.description or "",
     )
 
     if not card:

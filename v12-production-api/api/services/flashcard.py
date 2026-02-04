@@ -16,6 +16,9 @@ from ..database.models import Flashcard, LearningProgram
 
 FLASHCARD_PROMPT = ChatPromptTemplate.from_template("""You are an expert educator creating flashcards following the minimum information principle.
 
+Program: {program_name}
+{program_description}
+
 Topic: {topic}
 
 Context from the learning materials:
@@ -72,6 +75,8 @@ async def generate_flashcard(
     context: str,
     program_id: str,
     db: Session,
+    program_name: str = "",
+    program_description: str = "",
 ) -> Optional[Flashcard]:
     """Generate a flashcard for a topic using retrieved context.
 
@@ -93,9 +98,12 @@ async def generate_flashcard(
     chain = FLASHCARD_PROMPT | llm
 
     try:
+        desc_line = f"Description: {program_description}" if program_description else ""
         result = await chain.ainvoke({
             "topic": topic,
             "context": context,
+            "program_name": program_name or topic,
+            "program_description": desc_line,
         })
 
         # Parse JSON response
