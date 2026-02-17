@@ -972,24 +972,21 @@
 #### LLM Servers
 
 - Model serving fundamentals
-- Choosing open-source models (LLM leaderboards, MTEB)
-- Deploying to remote production endpoints (Together AI)
 - Inference optimization (quantization, batching, KV cache)
 - Cost considerations for self-hosting vs. APIs
 
-#### MCP Servers and Agent-to-Agent
+#### Popular LLM Servers
 
-- Setting up your own MCP server
-- Exposing StudyBuddy's capabilities via MCP
-- Agent-to-Agent communication (A2A protocol)
-- Agent cards for capability discovery
-- Remote-to-client agent coordination
+- vLLM for high-throughput serving
+- Text Generation Inference (TGI)
+- Ollama for local development and edge deployment
+- OpenAI-compatible server APIs
 
 #### Using Open-Source LLMs
 
 - Latest open-source models (Llama, Mixtral, etc.)
 - Open-source embedding models
-- Model selection criteria (quality, cost, latency)
+- Model selection criteria (quality, cost, latency, LLM leaderboards, MTEB)
 - When to use open-source vs. proprietary
 
 #### Deploying Open Models
@@ -998,13 +995,8 @@
 - Deploying custom embedding models
 - API configuration and management
 - Performance benchmarking
-
-#### Popular LLM Servers
-
-- vLLM for high-throughput serving
-- Text Generation Inference (TGI)
-- Ollama for local development
-- OpenAI-compatible server APIs
+- Fallback patterns (open model → proprietary API)
+- Model versioning and updates
 
 #### Agent-to-Agent Communication Patterns
 
@@ -1013,17 +1005,21 @@
 - Event sourcing for audit trails
 - Multi-agent coordination at scale
 
-#### Security in Distributed Systems
+#### Exposing Agents via MCP
 
-- Authentication between agents
-- Authorization and access control
-- Encrypted communication
-- Audit logging
+- Setting up your own MCP server
+- Exposing StudyBuddy's capabilities via MCP
+- Agent-to-Agent communication (A2A protocol)
+- Agent cards for capability discovery
+- Remote-to-client agent coordination
 
 #### Building StudyBuddy v13
 
+- **Local development with Ollama**: Run and test open-source models locally before deploying
 - **Open-source LLM support**: Use Llama, Mixtral via Together AI as alternatives to OpenAI
 - **Model selection**: Per-task model configuration (open models for card generation, OpenAI for complex reasoning)
+- **Fallback patterns**: Graceful degradation from open model to proprietary API on failures
+- **Model versioning**: Handle model updates without breaking production
 - Deploying open-source embedding models
 - Benchmarking open vs. proprietary model quality and latency
 - **StudyBuddy MCP Server**: Expose capabilities as MCP tools for other agents:
@@ -1053,6 +1049,13 @@
 - ML-based detection (toxicity classifiers)
 - Hybrid approaches
 - Custom LangGraph guardrail implementations
+
+#### Security in Distributed Systems
+
+- Authentication between agents
+- Authorization and access control
+- Encrypted communication
+- Audit logging
 
 #### The Importance of Caching
 
