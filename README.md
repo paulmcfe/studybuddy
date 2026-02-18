@@ -29,8 +29,8 @@ studybuddy/
 ├── v10-full-stack/
 ├── v11-mcp-connectors/
 ├── v12-production-api/
-├── v13-open-source/
-├── v14-production-ready/
+├── v13-advanced-infrastructure/
+├── v14-production-hardening/
 ├── shared/              # Shared utilities and data
 ├── scripts/             # Deployment and utility scripts
 ├── .gitignore
