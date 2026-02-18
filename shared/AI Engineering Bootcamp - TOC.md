@@ -1008,7 +1008,7 @@
 #### Exposing Agents via MCP
 
 - Setting up your own MCP server
-- Exposing your app's capabilities via MCP
+- Exposing StudyBuddy's capabilities via MCP
 - Agent-to-Agent communication (A2A protocol)
 - Agent cards for capability discovery
 - Remote-to-client agent coordination
