@@ -217,9 +217,10 @@ async def delete_document_from_program(
 ):
     """Remove a document's chunks from a program's vector store."""
     from qdrant_client.models import Filter, FieldCondition, MatchValue
-    from .retrieval import get_qdrant_client
+    from .retrieval import ensure_collection_exists
 
-    client = get_qdrant_client()
+    # ensure_collection_exists also creates payload indexes needed for filtered delete
+    client = ensure_collection_exists(program.qdrant_collection)
 
     # Delete all points with this document_id
     client.delete(
