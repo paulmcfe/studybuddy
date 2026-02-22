@@ -11,7 +11,7 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 from langchain_core.documents import Document
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams
+from qdrant_client.models import Distance, VectorParams, PayloadSchemaType
 
 from ..database.models import LearningProgram
 
@@ -77,6 +77,27 @@ def ensure_collection_exists(collection_name: str):
             ),
         )
         print(f"Created Qdrant collection: {collection_name}")
+
+    # Ensure payload indexes exist for filtered operations (delete, search by metadata).
+    # This is idempotent — Qdrant skips index creation if it already exists.
+    try:
+        collection_info = client.get_collection(collection_name)
+        existing_indexes = collection_info.payload_schema or {}
+
+        if "metadata.document_id" not in existing_indexes:
+            client.create_payload_index(
+                collection_name=collection_name,
+                field_name="metadata.document_id",
+                field_schema=PayloadSchemaType.KEYWORD,
+            )
+        if "metadata.program_id" not in existing_indexes:
+            client.create_payload_index(
+                collection_name=collection_name,
+                field_name="metadata.program_id",
+                field_schema=PayloadSchemaType.KEYWORD,
+            )
+    except Exception as e:
+        print(f"Warning: Could not ensure payload indexes for {collection_name}: {e}")
 
     return client
 
