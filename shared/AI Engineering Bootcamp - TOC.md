@@ -1130,9 +1130,13 @@
   - **Prompt caching**: Provider-specific implementations (Anthropic's cache, OpenAI's caching)
   - **CacheBackedEmbeddings**: Avoid re-embedding unchanged documents
 - **Cost analytics dashboard**: Token usage tracking, cost attribution by feature, budget alerts
+- **Distributed security hardening**:
+  - Inter-agent authentication for MCP and A2A communication
+  - Encrypted communication between services
+  - Audit logging for all agent interactions and data access
+- **Tiered rate limiting**: Per-user rate limits with access tiers and graceful degradation under load
 - **Production checklist UI**: Readiness status across security, performance, monitoring categories
 - Performance tuning (latency, throughput optimization)
-- Security hardening (authentication, authorization, email verification, input validation)
 - Final monitoring and alerting setup
 - Load testing under production conditions
 - Documentation for operations and maintenance

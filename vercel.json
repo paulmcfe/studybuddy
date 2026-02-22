@@ -2,17 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "v13-advanced-infrastructure/api/index.py",
+      "src": "v14-production-hardening/api/index.py",
       "use": "@vercel/python"
     },
     {
-      "src": "v13-advanced-infrastructure/frontend/package.json",
+      "src": "v14-production-hardening/frontend/package.json",
       "use": "@vercel/next"
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/v13-advanced-infrastructure/api/index.py" },
-    { "src": "/(.*)", "dest": "/v13-advanced-infrastructure/frontend/$1" }
+    { "src": "/api/(.*)", "dest": "/v14-production-hardening/api/index.py" },
+    { "src": "/(.*)", "dest": "/v14-production-hardening/frontend/$1" }
   ],
   "git": {
     "deploymentEnabled": {
