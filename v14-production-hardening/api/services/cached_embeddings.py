@@ -12,6 +12,7 @@ import hashlib
 import logging
 from typing import Optional
 
+from langchain_core.embeddings import Embeddings
 from langchain_openai import OpenAIEmbeddings
 
 logger = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 EMBEDDING_MODEL = "text-embedding-3-small"
 
 
-class DatabaseBackedEmbeddings:
+class DatabaseBackedEmbeddings(Embeddings):
     """Wraps OpenAIEmbeddings with a database-backed cache.
 
     On embed_documents(), checks the database for cached embeddings
