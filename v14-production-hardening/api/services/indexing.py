@@ -216,10 +216,10 @@ async def delete_document_from_program(
     program: LearningProgram,
 ):
     """Remove a document's chunks from a program's vector store."""
-    from qdrant_client import QdrantClient
     from qdrant_client.models import Filter, FieldCondition, MatchValue
+    from .retrieval import get_qdrant_client
 
-    client = QdrantClient(url=os.environ.get("QDRANT_URL", "http://localhost:6333"))
+    client = get_qdrant_client()
 
     # Delete all points with this document_id
     client.delete(

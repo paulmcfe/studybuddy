@@ -284,8 +284,8 @@ def _delete_old_document(
 ) -> None:
     """Delete an old document and its vectors during incremental sync."""
     import os
-    from qdrant_client import QdrantClient
     from qdrant_client.models import Filter, FieldCondition, MatchValue
+    from ..retrieval import get_qdrant_client
 
     old_doc = db.query(Document).filter(Document.id == document_id).first()
     if not old_doc:
@@ -293,9 +293,7 @@ def _delete_old_document(
 
     # Remove vectors from Qdrant
     try:
-        client = QdrantClient(
-            url=os.environ.get("QDRANT_URL", "http://localhost:6333")
-        )
+        client = get_qdrant_client()
         client.delete(
             collection_name=program.qdrant_collection,
             points_selector=Filter(

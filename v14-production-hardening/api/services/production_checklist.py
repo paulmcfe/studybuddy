@@ -208,9 +208,9 @@ class ProductionChecklist:
 
         # Qdrant
         try:
-            from qdrant_client import QdrantClient
-            qdrant_url = os.environ.get("QDRANT_URL", "http://localhost:6333")
-            client = QdrantClient(url=qdrant_url, timeout=5)
+            from .retrieval import get_qdrant_client, QDRANT_URL
+            qdrant_url = QDRANT_URL
+            client = get_qdrant_client()
             client.get_collections()
             results.append(CheckResult(
                 "Qdrant", CheckStatus.GREEN, "external",
