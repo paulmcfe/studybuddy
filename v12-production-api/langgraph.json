@@ -1,8 +1,0 @@
-{
-  "$schema": "https://langchain-ai.github.io/langgraph/reference/cli/#configuration-file",
-  "dependencies": ["."],
-  "graphs": {
-    "tutor": "./api/agents/tutor.py:create_tutor_graph"
-  },
-  "env": ".env"
-}
